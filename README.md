@@ -22,11 +22,34 @@ Vite 6 + React 19 + Leaflet + Supabase の PWA です。
 2. **Settings → Pages** で **Build and deployment** の Source を **GitHub Actions** にする。  
 3. `main` にプッシュすると [.github/workflows/deploy-github-pages.yml](.github/workflows/deploy-github-pages.yml) が走り、公開 URL は次の形式です。  
    `https://kjmanz.github.io/EigyoMap/`  
-4. **Supabase Dashboard → Authentication → URL Configuration** に次を追加（ログイン・リダイレクト用）。  
-   - Site URL: `https://kjmanz.github.io/EigyoMap/`  
-   - Redirect URLs: `https://kjmanz.github.io/EigyoMap/**`  
+4. **Supabase の URL 設定**（下記「Supabase の URL Configuration の意味」参照）。
 
 ローカルでは `VITE_BASE_PATH` を省略（ルート `/`）。GitHub 上のビルドのみ `/EigyoMap/` がワークフローで指定されます。
+
+### GitHub の Actions タブで「走ったか」を見る
+
+1. ブラウザで [EigyoMap の Actions](https://github.com/kjmanz/EigyoMap/actions) を開く（リポジトリ上部メニューの **Actions**）。  
+2. 左または一覧に **Deploy to GitHub Pages** というワークフロー名が出る。  
+3. 行をクリックすると、その実行の詳細。左上が **緑のチェック** なら成功、**赤の X** なら失敗（ログで原因を確認）。  
+4. `main` にプッシュするたびに自動で 1 回走る。手動で再実行する場合は、該当実行のページ右上 **Re-run jobs**。
+
+### Supabase の URL Configuration の意味（自分で入れる場所）
+
+Supabase のダッシュボードにログイン → 左メニュー **Authentication**（人型アイコン）→ その中の **URL Configuration**（または Project Settings 内の Authentication 関連）。
+
+- **Site URL**  
+  「このアプリのいちばん代表的な公開アドレス」です。GitHub Pages なら  
+  `https://kjmanz.github.io/EigyoMap/`  
+  を指定します（末尾の `/` はあってもなくてもよいことが多いですが、README どおりで問題ありません）。
+
+- **Redirect URLs**  
+  メールリンクや OAuth でログインしたあと、**ブラウザをどの URL に戻してよいか** の許可リストです。GitHub Pages のパス配下を許可するために  
+  `https://kjmanz.github.io/EigyoMap/**`  
+  を 1 行追加します（`**` は「その下のどのパスでもよい」というワイルドカードです）。
+
+ローカル開発（`http://localhost:5173` など）も使う場合は、同じ画面に `http://localhost:5173/**` を追加しておくと、本番と開発の両方でログインしやすくなります。
+
+※ ここは **あなたの Supabase プロジェクトの画面**での操作のみです。GitHub から自動では設定されません。
 
 ## データバックアップ（要件 F-EXP-04）
 
