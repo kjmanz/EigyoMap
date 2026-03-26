@@ -1,0 +1,2 @@
+[functions.export-csv]
+verify_jwt = true
