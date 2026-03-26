@@ -25,7 +25,6 @@ export function MapPage() {
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
   const [search, setSearch] = useState("");
   const [highlightId, setHighlightId] = useState<string | null>(highlightFromSearch);
-  const [layer, setLayer] = useState<"std" | "photo">("std");
   const [registerOpen, setRegisterOpen] = useState(false);
   const [tapLat, setTapLat] = useState<number | null>(null);
   const [tapLng, setTapLng] = useState<number | null>(null);
@@ -152,16 +151,7 @@ export function MapPage() {
             <option key={c.id} value={c.name} />
           ))}
         </datalist>
-        <select
-          value={layer}
-          onChange={(e) => setLayer(e.target.value as "std" | "photo")}
-          className="rounded border border-gray-300 px-1 py-2 text-xs text-gray-700"
-          aria-label="地図の種類"
-        >
-          <option value="std">標準</option>
-          <option value="photo">写真</option>
-        </select>
-        <button
+<button
           type="button"
           className="shrink-0 rounded border border-gray-300 px-2 py-2 text-xs text-gray-800"
           onClick={() => mapRef.current?.goToCurrentLocation()}
@@ -203,12 +193,11 @@ export function MapPage() {
             highlightId={highlightId}
             onMapClick={onMapClick}
             onMarkerClick={onMarkerClick}
-            layer={layer}
             skipInitialGpsFocus={Boolean(highlightFromSearch)}
           />
         </Suspense>
         <p className="pointer-events-none absolute bottom-1 left-1 right-1 text-center text-[10px] text-gray-500">
-          地図の表示には国土地理院のデータを使用しています。
+          &copy; OpenStreetMap contributors
         </p>
       </div>
 
