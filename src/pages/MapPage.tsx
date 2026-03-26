@@ -246,29 +246,46 @@ export function MapPage() {
 
         {/* ボトムシート */}
         <div
-          className={`absolute bottom-0 left-0 right-0 z-[1000] flex flex-col rounded-t-2xl bg-white shadow-lg transition-transform duration-300 ease-in-out ${
-            sheetOpen ? "translate-y-0" : "translate-y-[calc(100%-56px)]"
-          }`}
-          style={{ maxHeight: "50%" }}
+          className={`absolute bottom-0 left-0 right-0 z-[1000] flex flex-col rounded-t-3xl bg-white transition-transform duration-300 ease-in-out`}
+          style={{
+            maxHeight: "55%",
+            boxShadow: "0 -6px 24px rgba(0,0,0,0.18)",
+            paddingBottom: "env(safe-area-inset-bottom, 0px)",
+            transform: sheetOpen
+              ? "translateY(0)"
+              : "translateY(calc(100% - 68px - env(safe-area-inset-bottom, 0px)))",
+          }}
         >
           {/* ハンドル＋ヘッダー（常に表示、タップで開閉） */}
           <button
             type="button"
-            className="relative flex shrink-0 items-center justify-between px-4 py-3"
+            className="relative flex shrink-0 items-center justify-between rounded-t-3xl bg-white px-5 py-4 active:bg-gray-50"
             onClick={() => setSheetOpen((v) => !v)}
           >
-            <div className="absolute left-1/2 top-2 h-1 w-10 -translate-x-1/2 rounded-full bg-gray-300" />
-            <span className="text-sm font-medium text-gray-700">この地図にある顧客</span>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-blue-600">{visibleCustomers.length}件</span>
-              <span className="text-xs text-gray-400">{sheetOpen ? "▼" : "▲"}</span>
+            {/* ドラッグハンドル */}
+            <div className="absolute left-1/2 top-[10px] h-[5px] w-12 -translate-x-1/2 rounded-full bg-gray-300" />
+            {/* ラベル */}
+            <span className="mt-1 text-[15px] font-semibold text-gray-800">
+              この地図にある顧客
+            </span>
+            {/* 右側：件数バッジ＋矢印 */}
+            <div className="mt-1 flex items-center gap-2">
+              <span className="rounded-full bg-blue-600 px-2.5 py-0.5 text-xs font-bold text-white">
+                {visibleCustomers.length}件
+              </span>
+              <svg
+                className={`h-5 w-5 text-gray-400 transition-transform duration-300 ${sheetOpen ? "rotate-180" : ""}`}
+                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+              </svg>
             </div>
           </button>
 
           {/* 顧客リスト */}
           <div className="flex-1 overflow-y-auto border-t border-gray-100">
             {visibleCustomers.length === 0 ? (
-              <p className="p-4 text-center text-xs text-gray-400">この範囲に顧客はいません</p>
+              <p className="py-6 text-center text-sm text-gray-400">この範囲に顧客はいません</p>
             ) : (
               <ul>
                 {visibleCustomers.map((c) => {
@@ -277,20 +294,26 @@ export function MapPage() {
                       ? haversineMeters(userLat, userLng, c.lat, c.lng)
                       : null;
                   return (
-                    <li key={c.id} className="border-b border-gray-100">
+                    <li key={c.id} className="border-b border-gray-100 last:border-0">
                       <button
                         type="button"
-                        className="flex w-full items-center justify-between px-4 py-3 text-left active:bg-gray-50"
+                        className="flex w-full items-center gap-3 px-5 py-3.5 text-left active:bg-blue-50"
                         onClick={() => nav(`/customer/${c.id}`)}
                       >
-                        <span className="min-w-0 flex-1 truncate text-sm text-gray-800">
+                        {/* 顧客名 */}
+                        <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-gray-800">
                           {c.name}
                         </span>
+                        {/* 距離バッジ */}
                         {dist != null && (
-                          <span className="ml-2 shrink-0 text-xs text-gray-400">
+                          <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
                             {formatDistance(dist)}
                           </span>
                         )}
+                        {/* 矢印 */}
+                        <svg className="h-4 w-4 shrink-0 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
                       </button>
                     </li>
                   );
