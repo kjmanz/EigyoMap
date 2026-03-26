@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { readCachedMapCenter, writeCachedMapCenter } from "../lib/mapViewport";
 import type { CustomerRow } from "../lib/types";
 
 const DEFAULT_CENTER: L.LatLngTuple = [34.8161, 135.5686];
@@ -23,6 +24,8 @@ type Props = {
   onMapClick: (lat: number, lng: number) => void;
   onMarkerClick: (customerId: string) => void;
   layer: "std" | "photo";
+  /** true のときは初回 GPS で地図中心を動かさない（?highlight= で顧客に寄せるため） */
+  skipInitialGpsFocus?: boolean;
 };
 
 const userLocationIcon = L.divIcon({
@@ -35,9 +38,12 @@ const userLocationIcon = L.divIcon({
 });
 
 export const MapViewLeaflet = forwardRef<MapViewHandle, Props>(function MapViewLeaflet(
-  { customers, highlightId, onMapClick, onMarkerClick, layer },
+  { customers, highlightId, onMapClick, onMarkerClick, layer, skipInitialGpsFocus = false },
   ref
 ) {
+  const skipGpsFocusRef = useRef(skipInitialGpsFocus);
+  skipGpsFocusRef.current = skipInitialGpsFocus;
+
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
@@ -55,12 +61,15 @@ export const MapViewLeaflet = forwardRef<MapViewHandle, Props>(function MapViewL
       if (!navigator.geolocation) return;
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          mapRef.current?.setView([pos.coords.latitude, pos.coords.longitude], 19);
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          mapRef.current?.setView([lat, lng], 19);
+          writeCachedMapCenter(lat, lng, 19);
         },
         () => {
           mapRef.current?.setView(DEFAULT_CENTER, 16);
         },
-        { enableHighAccuracy: true, timeout: 10000 }
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 }
       );
     },
   }));
@@ -72,7 +81,10 @@ export const MapViewLeaflet = forwardRef<MapViewHandle, Props>(function MapViewL
       preferCanvas: true,
       maxZoom: MAP_MAX_ZOOM,
     });
-    map.setView(DEFAULT_CENTER, 16);
+    const cached = readCachedMapCenter();
+    const initialCenter: L.LatLngTuple = cached ? [cached.lat, cached.lng] : DEFAULT_CENTER;
+    const initialZoom = cached?.zoom ?? 16;
+    map.setView(initialCenter, initialZoom);
     const base = L.tileLayer(GSI_STD, {
       attribution:
         '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noreferrer">国土地理院</a>',
@@ -87,9 +99,15 @@ export const MapViewLeaflet = forwardRef<MapViewHandle, Props>(function MapViewL
     const userLayer = L.layerGroup().addTo(map);
     let userMarker: L.Marker | null = null;
     let accuracyCircle: L.Circle | null = null;
+    let centeredFromGps = false;
 
     const onLocationFound = (e: L.LocationEvent) => {
       const { latlng, accuracy } = e;
+      if (!skipGpsFocusRef.current && !centeredFromGps) {
+        map.setView(latlng, 18);
+        writeCachedMapCenter(latlng.lat, latlng.lng, 18);
+        centeredFromGps = true;
+      }
       if (!userMarker) {
         userMarker = L.marker(latlng, {
           icon: userLocationIcon,
@@ -123,8 +141,9 @@ export const MapViewLeaflet = forwardRef<MapViewHandle, Props>(function MapViewL
       watch: true,
       setView: false,
       enableHighAccuracy: true,
-      timeout: 15000,
-      maximumAge: 5000,
+      timeout: 20000,
+      /** ブラウザ／OS の直近位置をすぐ使い、初回の大きなジャンプを減らす */
+      maximumAge: 60000,
     });
 
     map.on("click", (e: L.LeafletMouseEvent) => {

@@ -55,11 +55,6 @@ export function MapPage() {
   }, [load]);
 
   useEffect(() => {
-    const t = setTimeout(() => mapRef.current?.goToCurrentLocation(), 200);
-    return () => clearTimeout(t);
-  }, []);
-
-  useEffect(() => {
     if (!highlightFromSearch) return;
     setHighlightId(highlightFromSearch);
     const c = customers.find((x) => x.id === highlightFromSearch);
@@ -209,6 +204,7 @@ export function MapPage() {
             onMapClick={onMapClick}
             onMarkerClick={onMarkerClick}
             layer={layer}
+            skipInitialGpsFocus={Boolean(highlightFromSearch)}
           />
         </Suspense>
         <p className="pointer-events-none absolute bottom-1 left-1 right-1 text-center text-[10px] text-gray-500">
