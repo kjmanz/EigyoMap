@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { fileToBase64Payload } from "../lib/files";
 import { deleteStoragePath, getSignedPhotoUrl, uploadContactPhotos } from "../lib/photos";
@@ -116,12 +116,13 @@ export function CustomerDetailPage() {
     }
   }
 
-  async function addMemo(files: FileList | null, memoText: string) {
+  async function addMemo(files: File[] | null, memoText: string) {
     if (!id || !user) return;
     const visitedAt = new Date().toISOString();
     const blobs: OfflineContactPayload["photoBlobs"] = [];
-    if (files) {
-      for (const f of Array.from(files)) {
+    const fileArr = files ?? [];
+    if (fileArr.length > 0) {
+      for (const f of fileArr) {
         const dataBase64 = await fileToBase64Payload(f);
         blobs.push({ name: f.name, type: f.type, dataBase64 });
       }
@@ -156,8 +157,8 @@ export function CustomerDetailPage() {
       return;
     }
     const logId = logRow.id as string;
-    if (files && files.length > 0) {
-      await uploadContactPhotos(user.id, logId, Array.from(files));
+    if (fileArr.length > 0) {
+      await uploadContactPhotos(user.id, logId, fileArr);
     }
     await load();
   }
@@ -350,12 +351,20 @@ function MemoComposer({
   onSubmit,
   onSync,
 }: {
-  onSubmit: (text: string, files: FileList | null) => void;
+  onSubmit: (text: string, files: File[] | null) => void;
   onSync: () => void;
 }) {
   const [text, setText] = useState("");
-  const [files, setFiles] = useState<FileList | null>(null);
-  const [fileKey, setFileKey] = useState(0);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [cameraKey, setCameraKey] = useState(0);
+  const [galleryKey, setGalleryKey] = useState(0);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+
+  function appendFiles(list: FileList | null) {
+    if (!list?.length) return;
+    setPhotoFiles((prev) => [...prev, ...Array.from(list)]);
+  }
 
   return (
     <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 bg-white p-3 shadow-lg">
@@ -368,14 +377,60 @@ function MemoComposer({
         onChange={(e) => setText(e.target.value)}
       />
       <input
-        key={fileKey}
+        key={cameraKey}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
         multiple
         capture="environment"
-        className="mt-2 text-sm"
-        onChange={(e) => setFiles(e.target.files)}
+        className="hidden"
+        onChange={(e) => {
+          appendFiles(e.target.files);
+          e.target.value = "";
+          setCameraKey((k) => k + 1);
+        }}
       />
+      <input
+        key={galleryKey}
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          appendFiles(e.target.files);
+          e.target.value = "";
+          setGalleryKey((k) => k + 1);
+        }}
+      />
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-800"
+          onClick={() => cameraInputRef.current?.click()}
+        >
+          撮影
+        </button>
+        <button
+          type="button"
+          className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-800"
+          onClick={() => galleryInputRef.current?.click()}
+        >
+          アルバムから
+        </button>
+        {photoFiles.length > 0 && (
+          <>
+            <span className="text-xs text-gray-600">写真 {photoFiles.length} 枚</span>
+            <button
+              type="button"
+              className="text-xs text-gray-500 underline"
+              onClick={() => setPhotoFiles([])}
+            >
+              写真をクリア
+            </button>
+          </>
+        )}
+      </div>
       <div className="mt-2 flex justify-between gap-2">
         <button type="button" className="text-xs text-accent underline" onClick={onSync}>
           オフライン同期
@@ -384,10 +439,9 @@ function MemoComposer({
           type="button"
           className="rounded bg-accent px-4 py-2 text-sm text-white"
           onClick={() => {
-            onSubmit(text, files);
+            onSubmit(text, photoFiles.length > 0 ? photoFiles : null);
             setText("");
-            setFiles(null);
-            setFileKey((k) => k + 1);
+            setPhotoFiles([]);
           }}
         >
           保存
