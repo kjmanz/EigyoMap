@@ -24,6 +24,10 @@ type Props = {
   onMarkerClick: (customerId: string) => void;
   /** true のときは初回 GPS で地図中心を動かさない（?highlight= で顧客に寄せるため） */
   skipInitialGpsFocus?: boolean;
+  /** 地図のビューポートが変わるたびに呼ばれる */
+  onBoundsChange?: (bounds: L.LatLngBounds) => void;
+  /** GPS 位置が更新されるたびに呼ばれる */
+  onLocationChange?: (lat: number, lng: number) => void;
 };
 
 const userLocationIcon = L.divIcon({
@@ -36,7 +40,8 @@ const userLocationIcon = L.divIcon({
 });
 
 export const MapViewLeaflet = forwardRef<MapViewHandle, Props>(function MapViewLeaflet(
-  { customers, highlightId, onMapClick, onMarkerClick, skipInitialGpsFocus = false },
+  { customers, highlightId, onMapClick, onMarkerClick, skipInitialGpsFocus = false,
+    onBoundsChange, onLocationChange },
   ref
 ) {
   const skipGpsFocusRef = useRef(skipInitialGpsFocus);
@@ -48,8 +53,12 @@ export const MapViewLeaflet = forwardRef<MapViewHandle, Props>(function MapViewL
   const baseRef = useRef<L.TileLayer | null>(null);
   const onMapClickRef = useRef(onMapClick);
   const onMarkerClickRef = useRef(onMarkerClick);
+  const onBoundsChangeRef = useRef(onBoundsChange);
+  const onLocationChangeRef = useRef(onLocationChange);
   onMapClickRef.current = onMapClick;
   onMarkerClickRef.current = onMarkerClick;
+  onBoundsChangeRef.current = onBoundsChange;
+  onLocationChangeRef.current = onLocationChange;
 
   useImperativeHandle(ref, () => ({
     setView(lat, lng, zoom = 16) {
@@ -106,6 +115,7 @@ export const MapViewLeaflet = forwardRef<MapViewHandle, Props>(function MapViewL
         writeCachedMapCenter(latlng.lat, latlng.lng, 18);
         centeredFromGps = true;
       }
+      onLocationChangeRef.current?.(latlng.lat, latlng.lng);
       if (!userMarker) {
         userMarker = L.marker(latlng, {
           icon: userLocationIcon,
@@ -148,11 +158,21 @@ export const MapViewLeaflet = forwardRef<MapViewHandle, Props>(function MapViewL
       onMapClickRef.current(e.latlng.lat, e.latlng.lng);
     });
 
+    const fireBounds = () => onBoundsChangeRef.current?.(map.getBounds());
+    setTimeout(() => {
+      map.invalidateSize();
+      fireBounds();
+    }, 0);
+    map.on("move", fireBounds);
+    map.on("zoomend", fireBounds);
+
     mapRef.current = map;
     return () => {
       map.stopLocate();
       map.off("locationfound", onLocationFound);
       map.off("locationerror", onLocationError);
+      map.off("move", fireBounds);
+      map.off("zoomend", fireBounds);
       map.remove();
       mapRef.current = null;
       markersLayerRef.current = null;

@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import type L from "leaflet";
 import type { MapViewHandle } from "../components/MapViewLeaflet";
 import {
   enqueueOffline,
@@ -14,6 +15,21 @@ import { useAuth } from "../contexts/AuthContext";
 const MapViewLeaflet = lazy(() =>
   import("../components/MapViewLeaflet").then((m) => ({ default: m.MapViewLeaflet }))
 );
+
+function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function formatDistance(m: number): string {
+  return m < 1000 ? `${Math.round(m)}m` : `${(m / 1000).toFixed(1)}km`;
+}
 
 export function MapPage() {
   const { user, configured } = useAuth();
@@ -32,12 +48,38 @@ export function MapPage() {
   const [memoDraft, setMemoDraft] = useState("");
   const [dupWarning, setDupWarning] = useState<string | null>(null);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
+  const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
+  const [userLat, setUserLat] = useState<number | null>(null);
+  const [userLng, setUserLng] = useState<number | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const filteredCustomers = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return customers;
     return customers.filter((c) => c.name.toLowerCase().includes(q));
   }, [customers, search]);
+
+  const visibleCustomers = useMemo(() => {
+    if (!mapBounds) return [];
+    const inBounds = filteredCustomers.filter((c) =>
+      mapBounds.contains([c.lat, c.lng])
+    );
+    if (userLat == null || userLng == null) return inBounds;
+    return [...inBounds].sort(
+      (a, b) =>
+        haversineMeters(userLat, userLng, a.lat, a.lng) -
+        haversineMeters(userLat, userLng, b.lat, b.lng)
+    );
+  }, [filteredCustomers, mapBounds, userLat, userLng]);
+
+  const onBoundsChange = useCallback((bounds: L.LatLngBounds) => {
+    setMapBounds(bounds);
+  }, []);
+
+  const onLocationChange = useCallback((lat: number, lng: number) => {
+    setUserLat(lat);
+    setUserLng(lng);
+  }, []);
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -194,11 +236,69 @@ export function MapPage() {
             onMapClick={onMapClick}
             onMarkerClick={onMarkerClick}
             skipInitialGpsFocus={Boolean(highlightFromSearch)}
+            onBoundsChange={onBoundsChange}
+            onLocationChange={onLocationChange}
           />
         </Suspense>
         <p className="pointer-events-none absolute bottom-1 left-1 right-1 text-center text-[10px] text-gray-500">
           &copy; OpenStreetMap contributors
         </p>
+
+        {/* ボトムシート */}
+        <div
+          className={`absolute bottom-0 left-0 right-0 z-[1000] flex flex-col rounded-t-2xl bg-white shadow-lg transition-transform duration-300 ease-in-out ${
+            sheetOpen ? "translate-y-0" : "translate-y-[calc(100%-56px)]"
+          }`}
+          style={{ maxHeight: "50%" }}
+        >
+          {/* ハンドル＋ヘッダー（常に表示、タップで開閉） */}
+          <button
+            type="button"
+            className="relative flex shrink-0 items-center justify-between px-4 py-3"
+            onClick={() => setSheetOpen((v) => !v)}
+          >
+            <div className="absolute left-1/2 top-2 h-1 w-10 -translate-x-1/2 rounded-full bg-gray-300" />
+            <span className="text-sm font-medium text-gray-700">この地図にある顧客</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-blue-600">{visibleCustomers.length}件</span>
+              <span className="text-xs text-gray-400">{sheetOpen ? "▼" : "▲"}</span>
+            </div>
+          </button>
+
+          {/* 顧客リスト */}
+          <div className="flex-1 overflow-y-auto border-t border-gray-100">
+            {visibleCustomers.length === 0 ? (
+              <p className="p-4 text-center text-xs text-gray-400">この範囲に顧客はいません</p>
+            ) : (
+              <ul>
+                {visibleCustomers.map((c) => {
+                  const dist =
+                    userLat != null && userLng != null
+                      ? haversineMeters(userLat, userLng, c.lat, c.lng)
+                      : null;
+                  return (
+                    <li key={c.id} className="border-b border-gray-100">
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-between px-4 py-3 text-left active:bg-gray-50"
+                        onClick={() => nav(`/customer/${c.id}`)}
+                      >
+                        <span className="min-w-0 flex-1 truncate text-sm text-gray-800">
+                          {c.name}
+                        </span>
+                        {dist != null && (
+                          <span className="ml-2 shrink-0 text-xs text-gray-400">
+                            {formatDistance(dist)}
+                          </span>
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </div>
       </div>
 
       {!configured && (
