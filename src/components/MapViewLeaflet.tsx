@@ -5,11 +5,10 @@ import { readCachedMapCenter, writeCachedMapCenter } from "../lib/mapViewport";
 import type { CustomerRow } from "../lib/types";
 
 const DEFAULT_CENTER: L.LatLngTuple = [34.8161, 135.5686];
-const GSI_STD = "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png";
-const GSI_PHOTO = "https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg";
+const OSM_TILE = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 
-/** 国土地理院タイルのネイティブ最大付近。これより上は Leaflet がタイルを拡大表示 */
-const TILE_MAX_NATIVE = 18;
+/** OSM タイルのネイティブ最大ズーム */
+const TILE_MAX_NATIVE = 19;
 /** ユーザーがピンチ等でさらに寄れる最大ズーム（タイルは拡大） */
 const MAP_MAX_ZOOM = 22;
 
@@ -23,7 +22,6 @@ type Props = {
   highlightId: string | null;
   onMapClick: (lat: number, lng: number) => void;
   onMarkerClick: (customerId: string) => void;
-  layer: "std" | "photo";
   /** true のときは初回 GPS で地図中心を動かさない（?highlight= で顧客に寄せるため） */
   skipInitialGpsFocus?: boolean;
 };
@@ -38,7 +36,7 @@ const userLocationIcon = L.divIcon({
 });
 
 export const MapViewLeaflet = forwardRef<MapViewHandle, Props>(function MapViewLeaflet(
-  { customers, highlightId, onMapClick, onMarkerClick, layer, skipInitialGpsFocus = false },
+  { customers, highlightId, onMapClick, onMarkerClick, skipInitialGpsFocus = false },
   ref
 ) {
   const skipGpsFocusRef = useRef(skipInitialGpsFocus);
@@ -85,9 +83,9 @@ export const MapViewLeaflet = forwardRef<MapViewHandle, Props>(function MapViewL
     const initialCenter: L.LatLngTuple = cached ? [cached.lat, cached.lng] : DEFAULT_CENTER;
     const initialZoom = cached?.zoom ?? 16;
     map.setView(initialCenter, initialZoom);
-    const base = L.tileLayer(GSI_STD, {
+    const base = L.tileLayer(OSM_TILE, {
       attribution:
-        '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noreferrer">国土地理院</a>',
+        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
       maxZoom: MAP_MAX_ZOOM,
       maxNativeZoom: TILE_MAX_NATIVE,
     });
@@ -162,12 +160,6 @@ export const MapViewLeaflet = forwardRef<MapViewHandle, Props>(function MapViewL
     };
   }, []);
 
-  useEffect(() => {
-    const base = baseRef.current;
-    if (!base) return;
-    const nextUrl = layer === "photo" ? GSI_PHOTO : GSI_STD;
-    base.setUrl(nextUrl);
-  }, [layer]);
 
   useEffect(() => {
     const map = mapRef.current;
