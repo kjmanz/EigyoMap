@@ -179,7 +179,7 @@ export function MapPage() {
 
   return (
     <div className="flex h-[100dvh] flex-col bg-white">
-      <header className="flex shrink-0 items-center gap-2 border-b border-gray-200 px-2 py-2">
+      <header className="relative z-10 flex shrink-0 items-center gap-2 border-b border-gray-200 bg-white px-2 py-2">
         <input
           type="search"
           placeholder="名前で検索"
