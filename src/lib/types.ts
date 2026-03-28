@@ -19,6 +19,14 @@ export type LabelRow = {
   created_at: string;
 };
 
+/** 地図・チップ表示用（マスタの一部フィールド） */
+export type LabelSummary = Pick<LabelRow, "id" | "name" | "color">;
+
+/** 顧客＋紐づくラベル（アプリ内で正規化した形） */
+export type CustomerMapRow = CustomerRow & {
+  labels: LabelSummary[];
+};
+
 export type ContactLogRow = {
   id: string;
   customer_id: string;

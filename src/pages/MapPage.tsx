@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import type L from "leaflet";
 import type { MapViewHandle } from "../components/MapViewLeaflet";
+import { pinColorFromLabels, toCustomerMapRow } from "../lib/customerLabels";
 import {
   enqueueOffline,
   flushOfflineQueue,
@@ -9,7 +10,7 @@ import {
   type OfflineCustomerPayload,
 } from "../lib/offline";
 import { supabase } from "../lib/supabase";
-import type { CustomerRow } from "../lib/types";
+import type { CustomerMapRow, LabelRow } from "../lib/types";
 import { useAuth } from "../contexts/AuthContext";
 
 const MapViewLeaflet = lazy(() =>
@@ -34,11 +35,14 @@ function formatDistance(m: number): string {
 export function MapPage() {
   const { user, configured } = useAuth();
   const nav = useNavigate();
-  const [params] = useSearchParams();
+  const [params, setSearchParams] = useSearchParams();
   const highlightFromSearch = params.get("highlight");
+  const relocateId = params.get("relocate");
 
   const mapRef = useRef<MapViewHandle>(null);
-  const [customers, setCustomers] = useState<CustomerRow[]>([]);
+  const [customers, setCustomers] = useState<CustomerMapRow[]>([]);
+  const [customersLoaded, setCustomersLoaded] = useState(false);
+  const [labelMaster, setLabelMaster] = useState<LabelRow[]>([]);
   const [search, setSearch] = useState("");
   const [highlightId, setHighlightId] = useState<string | null>(highlightFromSearch);
   const [registerOpen, setRegisterOpen] = useState(false);
@@ -46,18 +50,36 @@ export function MapPage() {
   const [tapLng, setTapLng] = useState<number | null>(null);
   const [nameDraft, setNameDraft] = useState("");
   const [memoDraft, setMemoDraft] = useState("");
+  const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
   const [dupWarning, setDupWarning] = useState<string | null>(null);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
   const [userLat, setUserLat] = useState<number | null>(null);
   const [userLng, setUserLng] = useState<number | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [relocateDraft, setRelocateDraft] = useState<{ lat: number; lng: number } | null>(null);
+
+  const relocateTarget = useMemo(() => {
+    if (!relocateId) return null;
+    return customers.find((c) => c.id === relocateId) ?? null;
+  }, [relocateId, customers]);
 
   const filteredCustomers = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return customers;
     return customers.filter((c) => c.name.toLowerCase().includes(q));
   }, [customers, search]);
+
+  const mapPins = useMemo(
+    () =>
+      filteredCustomers.map((c) => ({
+        id: c.id,
+        lat: c.lat,
+        lng: c.lng,
+        markerColor: pinColorFromLabels(c.labels),
+      })),
+    [filteredCustomers]
+  );
 
   const visibleCustomers = useMemo(() => {
     if (!mapBounds) return [];
@@ -82,18 +104,42 @@ export function MapPage() {
   }, []);
 
   const load = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setCustomersLoaded(false);
+      return;
+    }
     const { data: cus, error } = await supabase
       .from("customers")
-      .select("*")
+      .select("*, customer_labels(label_id, labels(id, name, color))")
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false });
-    if (!error && cus) setCustomers(cus as CustomerRow[]);
+    if (!error && cus) {
+      setCustomers(
+        (cus as Parameters<typeof toCustomerMapRow>[0][]).map((row) =>
+          toCustomerMapRow(row)
+        )
+      );
+    }
+    setCustomersLoaded(true);
+  }, [user]);
+
+  const loadLabels = useCallback(async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("labels")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("name");
+    if (!error && data) setLabelMaster(data as LabelRow[]);
   }, [user]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    void loadLabels();
+  }, [loadLabels]);
 
   useEffect(() => {
     if (!highlightFromSearch) return;
@@ -102,15 +148,55 @@ export function MapPage() {
     if (c) mapRef.current?.setView(c.lat, c.lng, 17);
   }, [highlightFromSearch, customers]);
 
+  useEffect(() => {
+    if (!relocateTarget) return;
+    mapRef.current?.setView(relocateTarget.lat, relocateTarget.lng, 17);
+  }, [relocateTarget]);
+
+  useEffect(() => {
+    if (!relocateId || !user || !customersLoaded) return;
+    if (!customers.some((c) => c.id === relocateId)) {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete("relocate");
+          return next;
+        },
+        { replace: true }
+      );
+    }
+  }, [relocateId, user, customersLoaded, customers, setSearchParams]);
+
+  const clearRelocateParam = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("relocate");
+        return next;
+      },
+      { replace: true }
+    );
+    setRelocateDraft(null);
+  }, [setSearchParams]);
+
   const onMapClick = useCallback(
     (lat: number, lng: number) => {
       if (!configured || !user) return;
+      if (relocateTarget) {
+        if (!isOnline()) {
+          setSyncMsg("位置の更新はオンラインで行ってください。");
+          return;
+        }
+        setRelocateDraft({ lat, lng });
+        return;
+      }
       setTapLat(lat);
       setTapLng(lng);
       setRegisterOpen(true);
       setDupWarning(null);
       setNameDraft("");
       setMemoDraft("");
+      setSelectedLabelIds([]);
 
       void supabase
         .rpc("find_nearby_customers", { p_lat: lat, p_lng: lng, p_meters: 30 })
@@ -120,7 +206,7 @@ export function MapPage() {
           }
         });
     },
-    [configured, user]
+    [configured, user, relocateTarget]
   );
 
   const onMarkerClick = useCallback(
@@ -133,6 +219,7 @@ export function MapPage() {
 
   async function saveCustomer() {
     if (tapLat == null || tapLng == null || !user || !nameDraft.trim()) return;
+    const labelIds = selectedLabelIds;
     const payload: OfflineCustomerPayload = {
       name: nameDraft.trim(),
       address: null,
@@ -140,7 +227,7 @@ export function MapPage() {
       memo: memoDraft.trim() || null,
       lat: tapLat,
       lng: tapLng,
-      labelIds: [],
+      labelIds,
     };
     if (!isOnline()) {
       await enqueueOffline({
@@ -152,21 +239,57 @@ export function MapPage() {
       setSyncMsg("オフラインのためキューに保存しました。オンラインで同期します。");
       return;
     }
-    const { error } = await supabase.from("customers").insert({
-      user_id: user.id,
-      name: payload.name,
-      address: null,
-      phone: null,
-      memo: payload.memo,
-      lat: payload.lat,
-      lng: payload.lng,
-    });
+    const { data: inserted, error } = await supabase
+      .from("customers")
+      .insert({
+        user_id: user.id,
+        name: payload.name,
+        address: null,
+        phone: null,
+        memo: payload.memo,
+        lat: payload.lat,
+        lng: payload.lng,
+      })
+      .select("id")
+      .single();
+    if (error || !inserted?.id) {
+      alert(error?.message ?? "登録に失敗しました");
+      return;
+    }
+    const customerId = inserted.id as string;
+    for (const lid of labelIds) {
+      const { error: e2 } = await supabase.from("customer_labels").insert({
+        customer_id: customerId,
+        label_id: lid,
+      });
+      if (e2) {
+        alert(e2.message);
+        await load();
+        return;
+      }
+    }
+    setRegisterOpen(false);
+    await load();
+  }
+
+  async function confirmRelocate() {
+    if (!relocateDraft || !relocateTarget || !user) return;
+    const { error } = await supabase
+      .from("customers")
+      .update({
+        lat: relocateDraft.lat,
+        lng: relocateDraft.lng,
+      })
+      .eq("id", relocateTarget.id)
+      .eq("user_id", user.id);
     if (error) {
       alert(error.message);
       return;
     }
-    setRegisterOpen(false);
+    setRelocateDraft(null);
+    clearRelocateParam();
     await load();
+    nav(`/customer/${relocateTarget.id}`);
   }
 
   async function onSyncOffline() {
@@ -179,6 +302,17 @@ export function MapPage() {
 
   return (
     <div className="flex h-[100dvh] flex-col bg-white">
+      {relocateTarget && (
+        <div className="relative z-20 flex shrink-0 items-center justify-between gap-2 border-b border-blue-200 bg-blue-50 px-2 py-2 text-xs text-blue-900">
+          <span className="min-w-0">
+            「{relocateTarget.name}」の位置を修正：地図をタップして新しい地点を指定してください。
+          </span>
+          <button type="button" className="shrink-0 underline" onClick={clearRelocateParam}>
+            キャンセル
+          </button>
+        </div>
+      )}
+
       <header className="relative z-10 flex shrink-0 items-center gap-2 border-b border-gray-200 bg-white px-2 py-2">
         <input
           type="search"
@@ -231,11 +365,11 @@ export function MapPage() {
         >
           <MapViewLeaflet
             ref={mapRef}
-            customers={search.trim() ? filteredCustomers : customers}
+            customers={mapPins}
             highlightId={highlightId}
             onMapClick={onMapClick}
             onMarkerClick={onMarkerClick}
-            skipInitialGpsFocus={Boolean(highlightFromSearch)}
+            skipInitialGpsFocus={Boolean(highlightFromSearch || relocateTarget)}
             onBoundsChange={onBoundsChange}
             onLocationChange={onLocationChange}
           />
@@ -365,6 +499,35 @@ export function MapPage() {
                   onChange={(e) => setMemoDraft(e.target.value)}
                 />
               </label>
+              {labelMaster.length > 0 && (
+                <fieldset className="text-gray-700">
+                  <legend className="text-sm">ラベル（任意）</legend>
+                  <ul className="mt-2 max-h-32 space-y-1 overflow-y-auto">
+                    {labelMaster.map((lb) => (
+                      <li key={lb.id}>
+                        <label className="flex cursor-pointer items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={selectedLabelIds.includes(lb.id)}
+                            onChange={(e) => {
+                              setSelectedLabelIds((prev) =>
+                                e.target.checked
+                                  ? [...prev, lb.id]
+                                  : prev.filter((x) => x !== lb.id)
+                              );
+                            }}
+                          />
+                          <span
+                            className="inline-block h-3 w-3 shrink-0 rounded-full border border-gray-300"
+                            style={{ backgroundColor: lb.color }}
+                          />
+                          {lb.name}
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                </fieldset>
+              )}
             </div>
             <div className="mt-4 flex justify-end gap-2">
               <button
@@ -380,6 +543,36 @@ export function MapPage() {
                 onClick={() => void saveCustomer()}
               >
                 保存
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {relocateDraft && relocateTarget && (
+        <div className="fixed inset-0 z-[1000] flex items-end justify-center bg-black/40 sm:items-center">
+          <div className="w-full max-w-lg rounded-t-lg bg-white p-4 shadow-lg sm:rounded-lg">
+            <h2 className="text-lg font-semibold text-gray-800">位置を更新</h2>
+            <p className="mt-2 text-sm text-gray-600">
+              「{relocateTarget.name}」のピンをこの座標に移しますか？
+            </p>
+            <p className="mt-1 font-mono text-xs text-gray-500">
+              {relocateDraft.lat.toFixed(6)}, {relocateDraft.lng.toFixed(6)}
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                className="rounded border border-gray-300 px-4 py-2 text-sm"
+                onClick={() => setRelocateDraft(null)}
+              >
+                戻る
+              </button>
+              <button
+                type="button"
+                className="rounded bg-accent px-4 py-2 text-sm text-white"
+                onClick={() => void confirmRelocate()}
+              >
+                更新する
               </button>
             </div>
           </div>

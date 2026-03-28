@@ -2,7 +2,14 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { readCachedMapCenter, writeCachedMapCenter } from "../lib/mapViewport";
-import type { CustomerRow } from "../lib/types";
+
+/** 地図マーカー用（色は呼び出し側で計算） */
+export type MapCustomerPin = {
+  id: string;
+  lat: number;
+  lng: number;
+  markerColor: string;
+};
 
 const DEFAULT_CENTER: L.LatLngTuple = [34.8161, 135.5686];
 const OSM_TILE = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -18,7 +25,7 @@ export type MapViewHandle = {
 };
 
 type Props = {
-  customers: CustomerRow[];
+  customers: MapCustomerPin[];
   highlightId: string | null;
   onMapClick: (lat: number, lng: number) => void;
   onMarkerClick: (customerId: string) => void;
@@ -186,20 +193,21 @@ export const MapViewLeaflet = forwardRef<MapViewHandle, Props>(function MapViewL
     const group = markersLayerRef.current;
     if (!map || !group) return;
     group.clearLayers();
-    const icon = L.divIcon({
-      className: "machimap-pin",
-      html: `<span style="display:block;width:14px;height:14px;border-radius:50%;background:#2563eb;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)"></span>`,
-      iconSize: [14, 14],
-      iconAnchor: [7, 7],
-    });
-    const hi = L.divIcon({
-      className: "machimap-pin-hi",
-      html: `<span style="display:block;width:18px;height:18px;border-radius:50%;background:#dc2626;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5)"></span>`,
-      iconSize: [18, 18],
-      iconAnchor: [9, 9],
-    });
     for (const c of customers) {
       const isHi = highlightId === c.id;
+      const fill = c.markerColor;
+      const icon = L.divIcon({
+        className: "machimap-pin",
+        html: `<span style="display:block;width:14px;height:14px;border-radius:50%;background:${fill};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)"></span>`,
+        iconSize: [14, 14],
+        iconAnchor: [7, 7],
+      });
+      const hi = L.divIcon({
+        className: "machimap-pin-hi",
+        html: `<span style="display:block;width:18px;height:18px;border-radius:50%;background:${fill};border:3px solid #dc2626;box-shadow:0 1px 4px rgba(0,0,0,.5)"></span>`,
+        iconSize: [18, 18],
+        iconAnchor: [9, 9],
+      });
       const m = L.marker([c.lat, c.lng], { icon: isHi ? hi : icon });
       m.on("click", (e) => {
         L.DomEvent.stopPropagation(e);
