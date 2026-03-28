@@ -342,6 +342,12 @@ export function MapPage() {
           一覧
         </Link>
         <Link
+          to="/today"
+          className="shrink-0 rounded border border-gray-300 px-2 py-2 text-xs text-gray-800"
+        >
+          今日
+        </Link>
+        <Link
           to="/settings"
           className="shrink-0 rounded border border-gray-300 px-2 py-2 text-xs text-gray-800"
         >

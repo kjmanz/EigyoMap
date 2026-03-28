@@ -131,7 +131,10 @@ export function SettingsPage() {
         <Link to="/" className="text-sm text-accent">
           地図
         </Link>
-        <h1 className="text-lg font-semibold text-gray-800">設定</h1>
+        <h1 className="flex-1 text-lg font-semibold text-gray-800">設定</h1>
+        <Link to="/today" className="text-xs text-gray-600">
+          今日
+        </Link>
       </header>
 
       <section className="mb-8">

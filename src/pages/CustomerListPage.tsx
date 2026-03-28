@@ -59,6 +59,9 @@ export function CustomerListPage() {
             地図
           </Link>
           <h1 className="flex-1 text-lg font-semibold text-gray-800">顧客一覧</h1>
+          <Link to="/today" className="text-xs text-gray-600">
+            今日
+          </Link>
           <Link to="/settings" className="text-xs text-gray-600">
             設定
           </Link>

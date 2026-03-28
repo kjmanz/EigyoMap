@@ -8,6 +8,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { MapPage } from "./pages/MapPage";
 import { MemoEditPage } from "./pages/MemoEditPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { TodaySummaryPage } from "./pages/TodaySummaryPage";
 import { TrashPage } from "./pages/TrashPage";
 
 export function App() {
@@ -29,6 +30,14 @@ export function App() {
           element={
             <ProtectedRoute>
               <CustomerListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/today"
+          element={
+            <ProtectedRoute>
+              <TodaySummaryPage />
             </ProtectedRoute>
           }
         />
