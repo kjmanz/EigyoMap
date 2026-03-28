@@ -56,7 +56,7 @@ export function MapPage() {
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
   const [userLat, setUserLat] = useState<number | null>(null);
   const [userLng, setUserLng] = useState<number | null>(null);
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(true);
   const [relocateDraft, setRelocateDraft] = useState<{ lat: number; lng: number } | null>(null);
 
   const relocateTarget = useMemo(() => {
