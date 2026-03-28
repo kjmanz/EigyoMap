@@ -351,7 +351,19 @@ export function CustomerDetailPage() {
         )}
         {!editing ? (
           <>
-            {customer.memo && <p className="text-sm text-gray-800">{customer.memo}</p>}
+            <section className="rounded-xl border border-gray-200 border-l-4 border-l-accent bg-gradient-to-br from-slate-50 to-white py-3 pl-3 pr-3 shadow-sm">
+              <h2 className="text-sm font-semibold text-gray-900">顧客メモ</h2>
+              <p className="mt-1 text-[11px] leading-relaxed text-gray-500">
+                登録時や共有用のメモです。訪問の記録は下のタイムラインに追加してください。
+              </p>
+              <div className="mt-3 text-sm leading-relaxed text-gray-800">
+                {customer.memo?.trim() ? (
+                  <p className="whitespace-pre-wrap">{customer.memo}</p>
+                ) : (
+                  <p className="text-gray-400">顧客メモはまだありません。「編集」から追加できます。</p>
+                )}
+              </div>
+            </section>
             <div className="mt-4 flex flex-wrap gap-2">
               <button
                 type="button"
@@ -383,8 +395,8 @@ export function CustomerDetailPage() {
             )}
           </>
         ) : (
-          <div className="flex flex-col gap-2">
-            <label className="text-sm">
+          <div className="flex flex-col gap-4">
+            <label className="text-sm text-gray-800">
               お客様名
               <input
                 className="mt-1 w-full rounded border border-gray-300 px-2 py-2"
@@ -392,15 +404,22 @@ export function CustomerDetailPage() {
                 onChange={(e) => setName(e.target.value)}
               />
             </label>
-            <label className="text-sm">
-              メモ（任意）
-              <textarea
-                className="mt-1 w-full rounded border border-gray-300 px-2 py-2"
-                rows={3}
-                value={memo}
-                onChange={(e) => setMemo(e.target.value)}
-              />
-            </label>
+            <div className="rounded-xl border border-gray-200 border-l-4 border-l-accent bg-white py-3 pl-3 pr-3 shadow-sm">
+              <h3 className="text-sm font-semibold text-gray-900">顧客メモ</h3>
+              <p className="mt-1 text-[11px] leading-relaxed text-gray-500">
+                訪問の記録はタイムラインへ。ここは顧客全体で共有したい内容向けです。
+              </p>
+              <label className="mt-3 block text-sm text-gray-800">
+                <span className="text-gray-600">顧客メモ（任意）</span>
+                <textarea
+                  className="mt-1 w-full rounded border border-gray-300 px-2 py-2"
+                  rows={4}
+                  value={memo}
+                  onChange={(e) => setMemo(e.target.value)}
+                  placeholder="例: 担当者名、契約番号、注意事項など"
+                />
+              </label>
+            </div>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -413,7 +432,11 @@ export function CustomerDetailPage() {
               <button
                 type="button"
                 className="rounded border border-gray-300 px-4 py-2 text-sm"
-                onClick={() => setEditing(false)}
+                onClick={() => {
+                  setEditing(false);
+                  setName(customer.name);
+                  setMemo(customer.memo ?? "");
+                }}
               >
                 キャンセル
               </button>
