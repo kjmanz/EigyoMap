@@ -147,6 +147,19 @@ export function SettingsPage() {
       </section>
 
       <section className="mb-8">
+        <h2 className="text-sm font-medium text-gray-700">ゴミ箱</h2>
+        <p className="mt-1 text-xs text-gray-500">
+          削除した顧客・メモは 30 日以内に復元できます。期限後は完全に削除されます。
+        </p>
+        <Link
+          to="/trash"
+          className="mt-3 inline-block rounded border border-gray-300 px-4 py-2 text-sm text-gray-800"
+        >
+          ゴミ箱を開く
+        </Link>
+      </section>
+
+      <section className="mb-8">
         <h2 className="text-sm font-medium text-gray-700">ラベル</h2>
         <p className="mt-1 text-xs text-gray-500">
           顧客に複数付けられます。地図のピン色は、名前順で最初のラベルの色が使われます。

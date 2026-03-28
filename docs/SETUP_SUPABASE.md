@@ -38,8 +38,10 @@ VITE_SUPABASE_ANON_KEY=（anon public をそのまま）
 
 4. [ ] **SQL Editor** を開き、`supabase/migrations/20260326000000_init.sql` の**全文**を貼って **Run**（または CLI で `supabase db push`）
 5. [ ] 同様に `supabase/migrations/20260326000002_contact_logs_pinned.sql` を実行（タイムラインのピン留め機能用。既に `init` に `pinned` を含めて流した場合のみスキップ可）
-6. [ ] PC に [Supabase CLI](https://supabase.com/docs/guides/cli) を入れ、`supabase login` → `supabase link --project-ref <reference>` → `supabase functions deploy export-csv`
+6. [ ] `supabase/migrations/20260328120000_soft_delete_restore.sql` を実行（ゴミ箱・30 日以内復元・認証ユーザーからの `DELETE` 廃止）
+7. [ ] PC に [Supabase CLI](https://supabase.com/docs/guides/cli) を入れ、`supabase login` → `supabase link --project-ref <reference>` → `supabase functions deploy export-csv`
    - `<reference>` は Project URL のサブドメイン部分だけ（`.supabase.co` の前）
+8. [ ] （任意）期限切れデータの完全削除と Storage 掃除: `supabase functions deploy purge-soft-deleted` のあと、ダッシュボードの **Edge Functions → Schedules** などで `purge-soft-deleted` を定期実行する。**Authorization には `service_role` キーを Bearer で渡す**（フロントや anon には載せない）。SQL のみで行う場合は SQL Editor で `select public.purge_expired_soft_deletes();` を `service_role` 相当の権限で実行できるが、この場合 **Storage 上の写真ファイルは残る**ことがあるため、本番では Edge Function 側のパージを推奨する。
 
 ローカルで `npm run check:env` を実行し、不足がないか確認してください。
 
@@ -60,8 +62,9 @@ A. `export-csv` がデプロイ済みか、ログイン済みか、`.env` が開
 
 ## こちら（リポジトリ）に最初から入っているもの
 
-- DB 定義: `supabase/migrations/20260326000000_init.sql`
+- DB 定義: `supabase/migrations/20260326000000_init.sql` ほか（ソフトデリートは `20260328120000_soft_delete_restore.sql`）
 - CSV 出力 API: `supabase/functions/export-csv/`
+- 期限切れゴミ箱のパージ（任意）: `supabase/functions/purge-soft-deleted/`
 - フロントの接続先読み込み: `src/lib/supabase.ts`（`import.meta.env`）
 
 あなたのプロジェクト専用の値は **Supabase ダッシュボードからだけ**取得します。リポジトリには秘密をコミットしないでください（`.gitignore` に `.env` があります）。

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { labelChipTextColor, toCustomerMapRow } from "../lib/customerLabels";
+import { canRestore, daysUntilPermanentDeletion } from "../lib/softDelete";
 import { fileToBase64Payload } from "../lib/files";
-import { deleteStoragePath, getSignedPhotoUrl, uploadContactPhotos } from "../lib/photos";
+import { getSignedPhotoUrl, uploadContactPhotos } from "../lib/photos";
 import {
   enqueueOffline,
   flushOfflineQueue,
@@ -59,6 +60,7 @@ export function CustomerDetailPage() {
       .from("contact_logs")
       .select("*, photos(*)")
       .eq("customer_id", id)
+      .is("deleted_at", null)
       .order("pinned", { ascending: false })
       .order("visited_at", { ascending: false });
     if (lg) {
@@ -140,30 +142,42 @@ export function CustomerDetailPage() {
   }
 
   async function deleteCustomer() {
-    if (!id || !confirm("この顧客と関連メモ・写真を削除しますか？")) return;
+    if (
+      !id ||
+      !confirm(
+        "この顧客を削除しますか？メモ・写真は 30 日間ゴミ箱から復元できます。その後完全に削除されます。"
+      )
+    )
+      return;
     setBusy(true);
     try {
-      const { data: logRows } = await supabase.from("contact_logs").select("id").eq("customer_id", id);
-      const logIds = (logRows ?? []).map((r) => r.id as string);
-      if (logIds.length > 0) {
-        const { data: phs } = await supabase
-          .from("photos")
-          .select("storage_path")
-          .in("contact_log_id", logIds);
-        for (const p of phs ?? []) {
-          try {
-            await deleteStoragePath((p as { storage_path: string }).storage_path);
-          } catch {
-            /* ignore */
-          }
-        }
-      }
-      const { error } = await supabase.from("customers").delete().eq("id", id);
+      const { error } = await supabase
+        .from("customers")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", id);
       if (error) {
         alert(error.message);
         return;
       }
       nav("/");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function restoreCustomerFromDetail() {
+    if (!id || !customer?.deleted_at) return;
+    setBusy(true);
+    try {
+      const { error } = await supabase
+        .from("customers")
+        .update({ deleted_at: null })
+        .eq("id", id);
+      if (error) {
+        alert(error.message);
+        return;
+      }
+      await load();
     } finally {
       setBusy(false);
     }
@@ -230,15 +244,16 @@ export function CustomerDetailPage() {
   }
 
   async function deleteLog(log: LogWithPhotos) {
-    if (!confirm("このメモを削除しますか？")) return;
-    for (const p of log.photos ?? []) {
-      try {
-        await deleteStoragePath(p.storage_path);
-      } catch {
-        /* ignore */
-      }
-    }
-    const { error } = await supabase.from("contact_logs").delete().eq("id", log.id);
+    if (
+      !confirm(
+        "このメモを削除しますか？30 日間ゴミ箱から復元できます。その後完全に削除されます。"
+      )
+    )
+      return;
+    const { error } = await supabase
+      .from("contact_logs")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", log.id);
     if (error) alert(error.message);
     else await load();
   }
@@ -252,6 +267,52 @@ export function CustomerDetailPage() {
           <Link to="/" className="text-accent underline">
             地図へ
           </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (customer.deleted_at) {
+    const ok = canRestore(customer.deleted_at);
+    const days = daysUntilPermanentDeletion(customer.deleted_at);
+    return (
+      <div className="min-h-screen bg-white pb-24">
+        <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-gray-200 bg-white px-3 py-2">
+          <button type="button" className="text-sm text-accent" onClick={() => nav(-1)}>
+            戻る
+          </button>
+          <h1 className="min-w-0 flex-1 truncate text-lg font-semibold text-gray-800">
+            {customer.name}
+          </h1>
+          <Link to="/trash" className="text-xs text-accent">
+            ゴミ箱
+          </Link>
+        </header>
+        <div className="p-4">
+          <p className="text-sm text-amber-900">この顧客は削除済みです。</p>
+          <p className="mt-2 text-xs text-gray-600">
+            削除日時: {new Date(customer.deleted_at).toLocaleString("ja-JP")}
+            {days != null && ` ・ 完全削除まであと約 ${days} 日`}
+          </p>
+          {ok ? (
+            <button
+              type="button"
+              className="mt-4 rounded bg-accent px-4 py-2 text-sm text-white disabled:opacity-50"
+              disabled={busy}
+              onClick={() => void restoreCustomerFromDetail()}
+            >
+              復元する
+            </button>
+          ) : (
+            <p className="mt-4 text-sm text-gray-500">
+              復元期限を過ぎています。データは次回の完全削除処理で消去されます。
+            </p>
+          )}
+          <div className="mt-4">
+            <Link to="/" className="text-sm text-accent underline">
+              地図へ
+            </Link>
+          </div>
         </div>
       </div>
     );

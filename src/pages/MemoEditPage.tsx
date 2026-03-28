@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { isoToDatetimeLocal } from "../lib/datetime";
 import { deleteStoragePath, getSignedPhotoUrl, uploadContactPhotos } from "../lib/photos";
+import { canRestore, daysUntilPermanentDeletion } from "../lib/softDelete";
 import { supabase } from "../lib/supabase";
 import type { ContactLogRow, PhotoRow } from "../lib/types";
 import { useAuth } from "../contexts/AuthContext";
@@ -84,6 +85,24 @@ export function MemoEditPage() {
     }
   }
 
+  async function restoreMemo() {
+    if (!logId) return;
+    setBusy(true);
+    try {
+      const { error } = await supabase
+        .from("contact_logs")
+        .update({ deleted_at: null })
+        .eq("id", logId);
+      if (error) {
+        alert(error.message);
+        return;
+      }
+      nav(`/customer/${id}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function removePhoto(p: PhotoRow) {
     if (!confirm("この写真を削除しますか？")) return;
     setBusy(true);
@@ -104,6 +123,46 @@ export function MemoEditPage() {
         <Link to={`/customer/${id}`} className="mt-2 inline-block text-accent underline">
           戻る
         </Link>
+      </div>
+    );
+  }
+
+  if (log.deleted_at) {
+    const ok = canRestore(log.deleted_at);
+    const days = daysUntilPermanentDeletion(log.deleted_at);
+    return (
+      <div className="min-h-screen bg-white p-4">
+        <header className="mb-4 flex items-center gap-2">
+          <button type="button" className="text-sm text-accent" onClick={() => nav(-1)}>
+            戻る
+          </button>
+          <h1 className="text-lg font-semibold text-gray-800">削除済みメモ</h1>
+        </header>
+        <p className="text-sm text-amber-900">このメモは削除済みです。</p>
+        <p className="mt-2 text-xs text-gray-600">
+          削除: {new Date(log.deleted_at).toLocaleString("ja-JP")}
+          {days != null && ` ・ 完全削除まであと約 ${days} 日`}
+        </p>
+        {ok ? (
+          <button
+            type="button"
+            className="mt-4 rounded bg-accent px-4 py-2 text-sm text-white disabled:opacity-50"
+            disabled={busy}
+            onClick={() => void restoreMemo()}
+          >
+            復元する
+          </button>
+        ) : (
+          <p className="mt-4 text-sm text-gray-500">復元期限を過ぎています。</p>
+        )}
+        <div className="mt-4 flex gap-2">
+          <Link to="/trash" className="text-sm text-accent underline">
+            ゴミ箱
+          </Link>
+          <Link to={`/customer/${id}`} className="text-sm text-gray-600 underline">
+            顧客へ
+          </Link>
+        </div>
       </div>
     );
   }

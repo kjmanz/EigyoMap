@@ -45,6 +45,7 @@ Deno.serve(async (req) => {
     .from("customers")
     .select("id,name,address,phone,memo,lat,lng,created_at,updated_at")
     .eq("user_id", user.id)
+    .is("deleted_at", null)
     .order("name");
 
   if (cErr) {
@@ -68,6 +69,7 @@ Deno.serve(async (req) => {
       .from("contact_logs")
       .select("id,customer_id,memo,visited_at,pinned")
       .in("customer_id", cids)
+      .is("deleted_at", null)
       .order("visited_at", { ascending: false });
     if (lErr) {
       return new Response(JSON.stringify({ error: lErr.message }), {

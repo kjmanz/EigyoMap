@@ -8,6 +8,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { MapPage } from "./pages/MapPage";
 import { MemoEditPage } from "./pages/MemoEditPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { TrashPage } from "./pages/TrashPage";
 
 export function App() {
   return (
@@ -36,6 +37,14 @@ export function App() {
           element={
             <ProtectedRoute>
               <SettingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/trash"
+          element={
+            <ProtectedRoute>
+              <TrashPage />
             </ProtectedRoute>
           }
         />

@@ -16,12 +16,14 @@ export function CustomerListPage() {
     const { data: customers, error } = await supabase
       .from("customers")
       .select("*")
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .is("deleted_at", null);
     if (error || !customers) return;
     const { data: logs } = await supabase
       .from("contact_logs")
       .select("customer_id, visited_at")
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .is("deleted_at", null);
     const lastBy = new Map<string, string>();
     for (const l of (logs ?? []) as Pick<ContactLogRow, "customer_id" | "visited_at">[]) {
       const cur = lastBy.get(l.customer_id);

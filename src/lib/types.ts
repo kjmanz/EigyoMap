@@ -9,6 +9,8 @@ export type CustomerRow = {
   lng: number;
   created_at: string;
   updated_at: string;
+  /** ソフトデリート日時（NULL なら有効） */
+  deleted_at?: string | null;
 };
 
 export type LabelRow = {
@@ -38,6 +40,8 @@ export type ContactLogRow = {
   created_at: string;
   lat: number | null;
   lng: number | null;
+  /** メモのソフトデリート日時（NULL なら有効） */
+  deleted_at?: string | null;
 };
 
 export type PhotoRow = {

@@ -112,6 +112,7 @@ export function MapPage() {
       .from("customers")
       .select("*, customer_labels(label_id, labels(id, name, color))")
       .eq("user_id", user.id)
+      .is("deleted_at", null)
       .order("updated_at", { ascending: false });
     if (!error && cus) {
       setCustomers(
