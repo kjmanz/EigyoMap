@@ -4,6 +4,13 @@ import type L from "leaflet";
 import type { MapViewHandle } from "../components/MapViewLeaflet";
 import { pinColorFromLabels, toCustomerMapRow } from "../lib/customerLabels";
 import {
+  getMapAttributionText,
+  MAP_BASE_LAYER_OPTIONS,
+  readPreferredMapBaseLayer,
+  writePreferredMapBaseLayer,
+  type MapBaseLayer,
+} from "../lib/mapBaseLayer";
+import {
   enqueueOffline,
   flushOfflineQueue,
   isOnline,
@@ -58,6 +65,11 @@ export function MapPage() {
   const [userLng, setUserLng] = useState<number | null>(null);
   const [sheetOpen, setSheetOpen] = useState(true);
   const [relocateDraft, setRelocateDraft] = useState<{ lat: number; lng: number } | null>(null);
+  const [baseLayer, setBaseLayer] = useState<MapBaseLayer>(() => readPreferredMapBaseLayer());
+
+  useEffect(() => {
+    writePreferredMapBaseLayer(baseLayer);
+  }, [baseLayer]);
 
   const relocateTarget = useMemo(() => {
     if (!relocateId) return null;
@@ -370,8 +382,31 @@ export function MapPage() {
             <div className="flex h-full items-center justify-center text-gray-500">地図を読み込み中…</div>
           }
         >
+          <div className="pointer-events-none absolute right-3 top-3 z-[900]">
+            <div className="pointer-events-auto inline-flex rounded-full bg-white/95 p-1 shadow-lg ring-1 ring-black/10 backdrop-blur-sm">
+              {MAP_BASE_LAYER_OPTIONS.map((option) => {
+                const active = baseLayer === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={active}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                      active
+                        ? "bg-gray-900 text-white shadow-sm"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                    onClick={() => setBaseLayer(option.value)}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <MapViewLeaflet
             ref={mapRef}
+            baseLayer={baseLayer}
             customers={mapPins}
             highlightId={highlightId}
             onMapClick={onMapClick}
@@ -382,7 +417,7 @@ export function MapPage() {
           />
         </Suspense>
         <p className="pointer-events-none absolute bottom-1 left-1 right-1 text-center text-[10px] text-gray-500">
-          &copy; OpenStreetMap contributors
+          {getMapAttributionText(baseLayer)}
         </p>
 
         {/* ボトムシート */}

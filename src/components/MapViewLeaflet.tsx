@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import type { MapBaseLayer } from "../lib/mapBaseLayer";
 import { readCachedMapCenter, writeCachedMapCenter } from "../lib/mapViewport";
 
 /** 地図マーカー用（色は呼び出し側で計算） */
@@ -13,11 +14,40 @@ export type MapCustomerPin = {
 
 const DEFAULT_CENTER: L.LatLngTuple = [34.8161, 135.5686];
 const OSM_TILE = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const GSI_PHOTO_TILE = "https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg";
 
 /** OSM タイルのネイティブ最大ズーム */
 const TILE_MAX_NATIVE = 19;
+const PHOTO_TILE_MAX_NATIVE = 18;
 /** ユーザーがピンチ等でさらに寄れる最大ズーム（タイルは拡大） */
 const MAP_MAX_ZOOM = 22;
+
+const BASE_LAYER_CONFIG: Record<
+  MapBaseLayer,
+  { url: string; attribution: string; maxNativeZoom: number }
+> = {
+  default: {
+    url: OSM_TILE,
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
+    maxNativeZoom: TILE_MAX_NATIVE,
+  },
+  photo: {
+    url: GSI_PHOTO_TILE,
+    attribution:
+      '出典: <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noreferrer">国土地理院</a>',
+    maxNativeZoom: PHOTO_TILE_MAX_NATIVE,
+  },
+};
+
+function createBaseLayer(baseLayer: MapBaseLayer): L.TileLayer {
+  const config = BASE_LAYER_CONFIG[baseLayer];
+  return L.tileLayer(config.url, {
+    attribution: config.attribution,
+    maxZoom: MAP_MAX_ZOOM,
+    maxNativeZoom: config.maxNativeZoom,
+  });
+}
 
 export type MapViewHandle = {
   setView: (lat: number, lng: number, zoom?: number) => void;
@@ -25,6 +55,7 @@ export type MapViewHandle = {
 };
 
 type Props = {
+  baseLayer: MapBaseLayer;
   customers: MapCustomerPin[];
   highlightId: string | null;
   onMapClick: (lat: number, lng: number) => void;
@@ -47,11 +78,12 @@ const userLocationIcon = L.divIcon({
 });
 
 export const MapViewLeaflet = forwardRef<MapViewHandle, Props>(function MapViewLeaflet(
-  { customers, highlightId, onMapClick, onMarkerClick, skipInitialGpsFocus = false,
+  { baseLayer, customers, highlightId, onMapClick, onMarkerClick, skipInitialGpsFocus = false,
     onBoundsChange, onLocationChange },
   ref
 ) {
   const skipGpsFocusRef = useRef(skipInitialGpsFocus);
+  const initialBaseLayerRef = useRef(baseLayer);
   skipGpsFocusRef.current = skipInitialGpsFocus;
 
   const mapRef = useRef<L.Map | null>(null);
@@ -99,12 +131,7 @@ export const MapViewLeaflet = forwardRef<MapViewHandle, Props>(function MapViewL
     const initialCenter: L.LatLngTuple = cached ? [cached.lat, cached.lng] : DEFAULT_CENTER;
     const initialZoom = cached?.zoom ?? 16;
     map.setView(initialCenter, initialZoom);
-    const base = L.tileLayer(OSM_TILE, {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
-      maxZoom: MAP_MAX_ZOOM,
-      maxNativeZoom: TILE_MAX_NATIVE,
-    });
+    const base = createBaseLayer(initialBaseLayerRef.current);
     base.addTo(map);
     baseRef.current = base;
     const markers = L.layerGroup().addTo(map);
@@ -186,6 +213,16 @@ export const MapViewLeaflet = forwardRef<MapViewHandle, Props>(function MapViewL
       baseRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const next = createBaseLayer(baseLayer);
+    const prev = baseRef.current;
+    if (prev) map.removeLayer(prev);
+    next.addTo(map);
+    baseRef.current = next;
+  }, [baseLayer]);
 
 
   useEffect(() => {
