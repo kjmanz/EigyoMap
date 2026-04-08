@@ -62,6 +62,7 @@ Supabase のダッシュボードにログイン → 左メニュー **Authentic
 
 ## PWA アイコン
 
+- `public/favicon.ico`: ブラウザが最初に参照しやすい従来形式のファビコン
 - `public/favicon.svg` / `public/favicon-32x32.png`: ブラウザタブと通常ファビコン
 - `public/apple-touch-icon.png`: iOS のホーム画面アイコン
 - `public/pwa-192.png` / `public/pwa-512.png`: PWA インストール時と Android のホーム画面ショートカット用アイコン

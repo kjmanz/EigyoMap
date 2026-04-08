@@ -147,14 +147,34 @@ function Draw-Icon {
   $bitmap.Dispose()
 }
 
+function Convert-PngToIco {
+  param(
+    [string]$InputPath,
+    [string]$OutputPath
+  )
+
+  $image = [System.Drawing.Image]::FromFile((Resolve-Path $InputPath))
+  try {
+    $directory = Split-Path -Parent $OutputPath
+    if (-not (Test-Path $directory)) {
+      New-Item -ItemType Directory -Path $directory | Out-Null
+    }
+
+    $image.Save($OutputPath, [System.Drawing.Imaging.ImageFormat]::Icon)
+  } finally {
+    $image.Dispose()
+  }
+}
+
 $root = Resolve-Path (Join-Path $PSScriptRoot "..")
 $public = Join-Path $root "public"
 
 Draw-Icon -Size 32 -OutputPath (Join-Path $public "favicon-32x32.png")
+Convert-PngToIco -InputPath (Join-Path $public "favicon-32x32.png") -OutputPath (Join-Path $public "favicon.ico")
 Draw-Icon -Size 180 -OutputPath (Join-Path $public "apple-touch-icon.png")
 Draw-Icon -Size 192 -OutputPath (Join-Path $public "pwa-192.png")
 Draw-Icon -Size 192 -OutputPath (Join-Path $public "pwa-192-maskable.png")
 Draw-Icon -Size 512 -OutputPath (Join-Path $public "pwa-512.png")
 Draw-Icon -Size 512 -OutputPath (Join-Path $public "pwa-512-maskable.png")
 
-Write-Output "Generated favicon and PWA icon assets in $public"
+Write-Output "Generated favicon, ICO, and PWA icon assets in $public"
