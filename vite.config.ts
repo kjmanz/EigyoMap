@@ -15,7 +15,13 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: "autoUpdate",
-        includeAssets: ["favicon.svg"],
+        includeAssets: [
+          "favicon.svg",
+          "favicon-32x32.png",
+          "apple-touch-icon.png",
+          "pwa-192-maskable.png",
+          "pwa-512-maskable.png",
+        ],
         manifest: {
           name: "まちマップ",
           short_name: "まちマップ",
@@ -34,6 +40,18 @@ export default defineConfig(({ mode }) => {
               src: iconSrc("pwa-512.png"),
               sizes: "512x512",
               type: "image/png",
+            },
+            {
+              src: iconSrc("pwa-192-maskable.png"),
+              sizes: "192x192",
+              type: "image/png",
+              purpose: "maskable",
+            },
+            {
+              src: iconSrc("pwa-512-maskable.png"),
+              sizes: "512x512",
+              type: "image/png",
+              purpose: "maskable",
             },
           ],
         },

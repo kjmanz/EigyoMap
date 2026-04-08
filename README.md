@@ -62,4 +62,8 @@ Supabase のダッシュボードにログイン → 左メニュー **Authentic
 
 ## PWA アイコン
 
-`public/pwa-192.png` / `pwa-512.png` はプレースホルダです。必要に差し替えてください。
+- `public/favicon.svg` / `public/favicon-32x32.png`: ブラウザタブと通常ファビコン
+- `public/apple-touch-icon.png`: iOS のホーム画面アイコン
+- `public/pwa-192.png` / `public/pwa-512.png`: PWA インストール時と Android のホーム画面ショートカット用アイコン
+- `public/pwa-192-maskable.png` / `public/pwa-512-maskable.png`: Android ランチャー向けの `maskable` アイコン
+- 再生成する場合は `powershell -File scripts/generate-icons.ps1` を実行してください。
