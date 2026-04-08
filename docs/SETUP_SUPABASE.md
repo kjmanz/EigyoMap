@@ -47,6 +47,17 @@ VITE_SUPABASE_ANON_KEY=（anon public をそのまま）
 
 ---
 
+## Google ログインを使う場合
+
+1. Supabase ダッシュボードの **Authentication → Providers** で Google を有効化する。
+2. Google Cloud Console で OAuth クライアント ID / Secret を作成し、Supabase の Google provider 設定に貼る。
+3. Supabase の **Authentication → URL Configuration** に、次の redirect URL を追加する。
+   - `http://localhost:5173/login`
+   - `https://kjmanz.github.io/EigyoMap/login`
+4. 画面の「Google でログイン」ボタンは `/login` に戻ってくる前提なので、Google 認証後はログイン画面から自動でトップへ戻る。
+
+---
+
 ## よくある質問
 
 **Q. Project URL と Project ID は違う？**  

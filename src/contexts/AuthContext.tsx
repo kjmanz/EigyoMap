@@ -17,6 +17,7 @@ type AuthState = {
   configured: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithGoogle: (redirectTo: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 };
 
@@ -60,6 +61,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null };
   }, []);
 
+  const signInWithGoogle = useCallback(async (redirectTo: string) => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo },
+    });
+    return { error: error as Error | null };
+  }, []);
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
   }, []);
@@ -72,9 +81,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       configured,
       signIn,
       signUp,
+      signInWithGoogle,
       signOut,
     }),
-    [session, loading, configured, signIn, signUp, signOut]
+    [session, loading, configured, signIn, signUp, signInWithGoogle, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
