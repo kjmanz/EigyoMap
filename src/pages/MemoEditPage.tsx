@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { AppHeader } from "../components/AppHeader";
 import { isoToDatetimeLocal } from "../lib/datetime";
 import { deleteStoragePath, getSignedPhotoUrl, uploadContactPhotos } from "../lib/photos";
 import { canRestore, daysUntilPermanentDeletion } from "../lib/softDelete";
@@ -131,13 +132,9 @@ export function MemoEditPage() {
     const ok = canRestore(log.deleted_at);
     const days = daysUntilPermanentDeletion(log.deleted_at);
     return (
-      <div className="min-h-screen bg-white p-4">
-        <header className="mb-4 flex items-center gap-2">
-          <button type="button" className="text-sm text-accent" onClick={() => nav(-1)}>
-            戻る
-          </button>
-          <h1 className="text-lg font-semibold text-gray-800">削除済みメモ</h1>
-        </header>
+      <div className="min-h-screen bg-white">
+        <AppHeader variant="back" title="削除済みメモ" onBack={() => nav(-1)} />
+        <div className="p-4">
         <p className="text-sm text-amber-900">このメモは削除済みです。</p>
         <p className="mt-2 text-xs text-gray-600">
           削除: {new Date(log.deleted_at).toLocaleString("ja-JP")}
@@ -163,18 +160,15 @@ export function MemoEditPage() {
             顧客へ
           </Link>
         </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white p-4 pb-24">
-      <header className="mb-4 flex items-center gap-2">
-        <button type="button" className="text-sm text-accent" onClick={() => nav(-1)}>
-          戻る
-        </button>
-        <h1 className="text-lg font-semibold text-gray-800">メモを編集</h1>
-      </header>
+    <div className="min-h-screen bg-white">
+      <AppHeader variant="back" title="メモを編集" onBack={() => nav(-1)} />
+      <div className="p-4 pb-24">
       <label className="block text-sm text-gray-700">
         訪問日時
         <input
@@ -241,6 +235,7 @@ export function MemoEditPage() {
         <Link to={`/customer/${id}`} className="rounded border border-gray-300 px-4 py-2 text-sm">
           キャンセル
         </Link>
+      </div>
       </div>
     </div>
   );

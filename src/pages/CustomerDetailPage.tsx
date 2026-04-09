@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { AppHeader, APP_HEADER_NAV_CLASS } from "../components/AppHeader";
 import { labelChipTextColor, toCustomerMapRow } from "../lib/customerLabels";
 import { canRestore, daysUntilPermanentDeletion } from "../lib/softDelete";
 import { fileToBase64Payload } from "../lib/files";
@@ -277,17 +278,16 @@ export function CustomerDetailPage() {
     const days = daysUntilPermanentDeletion(customer.deleted_at);
     return (
       <div className="min-h-screen bg-white pb-24">
-        <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-gray-200 bg-white px-3 py-2">
-          <button type="button" className="text-sm text-accent" onClick={() => nav(-1)}>
-            戻る
-          </button>
-          <h1 className="min-w-0 flex-1 truncate text-lg font-semibold text-gray-800">
-            {customer.name}
-          </h1>
-          <Link to="/trash" className="text-xs text-accent">
-            ゴミ箱
-          </Link>
-        </header>
+        <AppHeader
+          variant="back"
+          title={customer.name}
+          onBack={() => nav(-1)}
+          rightSlot={
+            <Link to="/trash" className={APP_HEADER_NAV_CLASS}>
+              ゴミ箱
+            </Link>
+          }
+        />
         <div className="p-4">
           <p className="text-sm text-amber-900">この顧客は削除済みです。</p>
           <p className="mt-2 text-xs text-gray-600">
@@ -320,17 +320,16 @@ export function CustomerDetailPage() {
 
   return (
     <div className="min-h-screen bg-white pb-24">
-      <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-gray-200 bg-white px-3 py-2">
-        <button type="button" className="text-sm text-accent" onClick={() => nav(-1)}>
-          戻る
-        </button>
-        <h1 className="min-w-0 flex-1 truncate text-lg font-semibold text-gray-800">
-          {customer.name}
-        </h1>
-        <Link to={`/?highlight=${customer.id}`} className="text-xs text-accent">
-          地図
-        </Link>
-      </header>
+      <AppHeader
+        variant="back"
+        title={customer.name}
+        onBack={() => nav(-1)}
+        rightSlot={
+          <Link to={`/?highlight=${customer.id}`} className={APP_HEADER_NAV_CLASS}>
+            地図
+          </Link>
+        }
+      />
 
       <div className="p-4">
         {customer.labels.length > 0 && (

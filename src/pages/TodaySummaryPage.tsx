@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { AppHeader } from "../components/AppHeader";
 import { getLocalDayRangeISO } from "../lib/todayRange";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../contexts/AuthContext";
@@ -79,26 +80,16 @@ export function TodaySummaryPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <header className="sticky top-0 z-10 border-b border-gray-200 bg-white px-3 py-2">
-        <div className="flex items-center gap-2">
-          <Link to="/" className="text-sm text-accent">
-            地図
-          </Link>
-          <h1 className="flex-1 text-lg font-semibold text-gray-800">今日のまとめ</h1>
-          <Link to="/list" className="text-xs text-gray-600">
-            一覧
-          </Link>
-          <Link to="/settings" className="text-xs text-gray-600">
-            設定
-          </Link>
+      <AppHeader variant="main" title="今日のまとめ" activeNav="today">
+        <div className="mt-2 space-y-1 border-t border-gray-100 pt-2">
+          <p className="text-xs text-gray-500">{dateLabel}</p>
+          {!loading && (
+            <p className="text-sm font-medium text-gray-700">
+              訪問メモ <span className="text-accent">{rows.length}</span> 件
+            </p>
+          )}
         </div>
-        <p className="mt-1 text-xs text-gray-500">{dateLabel}</p>
-        {!loading && (
-          <p className="mt-1 text-sm font-medium text-gray-700">
-            訪問メモ <span className="text-accent">{rows.length}</span> 件
-          </p>
-        )}
-      </header>
+      </AppHeader>
 
       {err && <p className="px-3 py-2 text-sm text-red-600">{err}</p>}
 

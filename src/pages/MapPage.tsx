@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import type L from "leaflet";
+import { AppHeader, APP_HEADER_NAV_CLASS } from "../components/AppHeader";
 import type { MapViewHandle } from "../components/MapViewLeaflet";
 import { pinColorFromLabels, toCustomerMapRow } from "../lib/customerLabels";
 import {
@@ -323,46 +324,32 @@ export function MapPage() {
         </div>
       )}
 
-      <header className="relative z-10 flex shrink-0 items-center gap-2 border-b border-gray-200 bg-white px-2 py-2">
-        <input
-          type="search"
-          placeholder="名前で検索"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="min-w-0 flex-1 rounded border border-gray-300 px-2 py-2 text-sm"
-          list="customer-search-list"
-        />
-        <datalist id="customer-search-list">
-          {filteredCustomers.slice(0, 20).map((c) => (
-            <option key={c.id} value={c.name} />
-          ))}
-        </datalist>
-<button
-          type="button"
-          className="shrink-0 rounded border border-gray-300 px-2 py-2 text-xs text-gray-800"
-          onClick={() => mapRef.current?.goToCurrentLocation()}
-        >
-          現在地
-        </button>
-        <Link
-          to="/list"
-          className="shrink-0 rounded border border-gray-300 px-2 py-2 text-xs text-gray-800"
-        >
-          一覧
-        </Link>
-        <Link
-          to="/today"
-          className="shrink-0 rounded border border-gray-300 px-2 py-2 text-xs text-gray-800"
-        >
-          今日
-        </Link>
-        <Link
-          to="/settings"
-          className="shrink-0 rounded border border-gray-300 px-2 py-2 text-xs text-gray-800"
-        >
-          設定
-        </Link>
-      </header>
+      <AppHeader
+        variant="main"
+        title="まちマップ"
+        activeNav="map"
+        navTrailing={
+          <button
+            type="button"
+            className={APP_HEADER_NAV_CLASS}
+            onClick={() => mapRef.current?.goToCurrentLocation()}
+          >
+            現在地
+          </button>
+        }
+        search={{
+          value: search,
+          onChange: setSearch,
+          listId: "customer-search-list",
+          datalist: (
+            <datalist id="customer-search-list">
+              {filteredCustomers.slice(0, 20).map((c) => (
+                <option key={c.id} value={c.name} />
+              ))}
+            </datalist>
+          ),
+        }}
+      />
 
       {syncMsg && (
         <div className="flex items-center justify-between gap-2 border-b border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-900">

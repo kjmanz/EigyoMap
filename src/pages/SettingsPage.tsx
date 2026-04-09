@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { AppHeader } from "../components/AppHeader";
 import { supabase } from "../lib/supabase";
 import type { LabelRow } from "../lib/types";
 import { useAuth } from "../contexts/AuthContext";
@@ -126,17 +127,9 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white p-4">
-      <header className="mb-6 flex items-center gap-2">
-        <Link to="/" className="text-sm text-accent">
-          地図
-        </Link>
-        <h1 className="flex-1 text-lg font-semibold text-gray-800">設定</h1>
-        <Link to="/today" className="text-xs text-gray-600">
-          今日
-        </Link>
-      </header>
-
+    <div className="min-h-screen bg-white">
+      <AppHeader variant="main" title="設定" activeNav="settings" />
+      <div className="p-4">
       <section className="mb-8">
         <h2 className="text-sm font-medium text-gray-700">アカウント</h2>
         <p className="mt-1 text-xs text-gray-500">{user?.email ?? "—"}</p>
@@ -233,6 +226,7 @@ export function SettingsPage() {
       <p className="text-[10px] text-gray-400">
         LINE 連携・Google 連携は Phase 2 以降の予定です。
       </p>
+      </div>
     </div>
   );
 }

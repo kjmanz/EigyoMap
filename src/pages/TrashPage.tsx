@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { AppHeader } from "../components/AppHeader";
 import { supabase } from "../lib/supabase";
 import { canRestore, daysUntilPermanentDeletion } from "../lib/softDelete";
 import type { ContactLogRow, CustomerRow } from "../lib/types";
@@ -82,17 +82,9 @@ export function TrashPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white p-4">
-      <header className="mb-6 flex items-center gap-2">
-        <Link to="/settings" className="text-sm text-accent">
-          設定
-        </Link>
-        <h1 className="flex-1 text-lg font-semibold text-gray-800">ゴミ箱</h1>
-        <Link to="/" className="text-xs text-gray-600">
-          地図
-        </Link>
-      </header>
-
+    <div className="min-h-screen bg-white">
+      <AppHeader variant="main" title="ゴミ箱" activeNav={null} />
+      <div className="p-4">
       <p className="mb-4 text-xs text-gray-600">
         削除した顧客・メモは 30 日間ここから復元できます。期限後は自動で完全削除されます（写真も含む）。
       </p>
@@ -180,6 +172,7 @@ export function TrashPage() {
           </section>
         </>
       )}
+      </div>
     </div>
   );
 }
