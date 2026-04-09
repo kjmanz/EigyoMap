@@ -51,7 +51,6 @@ export function MapPage() {
   const [customersLoaded, setCustomersLoaded] = useState(false);
   const [labelMaster, setLabelMaster] = useState<LabelRow[]>([]);
   const [search, setSearch] = useState("");
-  const [highlightId, setHighlightId] = useState<string | null>(highlightFromSearch);
   const [registerOpen, setRegisterOpen] = useState(false);
   const [tapLat, setTapLat] = useState<number | null>(null);
   const [tapLng, setTapLng] = useState<number | null>(null);
@@ -156,7 +155,6 @@ export function MapPage() {
 
   useEffect(() => {
     if (!highlightFromSearch) return;
-    setHighlightId(highlightFromSearch);
     const c = customers.find((x) => x.id === highlightFromSearch);
     if (c) mapRef.current?.setView(c.lat, c.lng, 17);
   }, [highlightFromSearch, customers]);
@@ -224,7 +222,6 @@ export function MapPage() {
 
   const onMarkerClick = useCallback(
     (id: string) => {
-      setHighlightId(id);
       nav(`/customer/${id}`);
     },
     [nav]
@@ -408,7 +405,6 @@ export function MapPage() {
             ref={mapRef}
             baseLayer={baseLayer}
             customers={mapPins}
-            highlightId={highlightId}
             onMapClick={onMapClick}
             onMarkerClick={onMarkerClick}
             skipInitialGpsFocus={Boolean(highlightFromSearch || relocateTarget)}

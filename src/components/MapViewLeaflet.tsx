@@ -57,7 +57,6 @@ export type MapViewHandle = {
 type Props = {
   baseLayer: MapBaseLayer;
   customers: MapCustomerPin[];
-  highlightId: string | null;
   onMapClick: (lat: number, lng: number) => void;
   onMarkerClick: (customerId: string) => void;
   /** true のときは初回 GPS で地図中心を動かさない（?highlight= で顧客に寄せるため） */
@@ -78,7 +77,7 @@ const userLocationIcon = L.divIcon({
 });
 
 export const MapViewLeaflet = forwardRef<MapViewHandle, Props>(function MapViewLeaflet(
-  { baseLayer, customers, highlightId, onMapClick, onMarkerClick, skipInitialGpsFocus = false,
+  { baseLayer, customers, onMapClick, onMarkerClick, skipInitialGpsFocus = false,
     onBoundsChange, onLocationChange },
   ref
 ) {
@@ -231,7 +230,6 @@ export const MapViewLeaflet = forwardRef<MapViewHandle, Props>(function MapViewL
     if (!map || !group) return;
     group.clearLayers();
     for (const c of customers) {
-      const isHi = highlightId === c.id;
       const fill = c.markerColor;
       const icon = L.divIcon({
         className: "machimap-pin",
@@ -239,20 +237,14 @@ export const MapViewLeaflet = forwardRef<MapViewHandle, Props>(function MapViewL
         iconSize: [14, 14],
         iconAnchor: [7, 7],
       });
-      const hi = L.divIcon({
-        className: "machimap-pin-hi",
-        html: `<span style="display:block;width:18px;height:18px;border-radius:50%;background:${fill};border:3px solid #dc2626;box-shadow:0 1px 4px rgba(0,0,0,.5)"></span>`,
-        iconSize: [18, 18],
-        iconAnchor: [9, 9],
-      });
-      const m = L.marker([c.lat, c.lng], { icon: isHi ? hi : icon });
+      const m = L.marker([c.lat, c.lng], { icon });
       m.on("click", (e) => {
         L.DomEvent.stopPropagation(e);
         onMarkerClickRef.current(c.id);
       });
       m.addTo(group);
     }
-  }, [customers, highlightId]);
+  }, [customers]);
 
   return <div ref={containerRef} className="h-full w-full min-h-[240px]" />;
 });
