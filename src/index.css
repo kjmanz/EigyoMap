@@ -18,14 +18,37 @@ body,
   left: 12px;
 }
 
-.leaflet-control-zoom {
+/* ズーム: 2ボタンを丸く分離、凡例に近いリング＆陰影 */
+.leaflet-control-zoom.leaflet-bar {
   margin: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.5rem !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .leaflet-control-zoom a {
   width: 40px !important;
   height: 40px !important;
   line-height: 40px !important;
+  float: none !important;
+  border: none !important;
+  border-bottom: none !important;
+  border-radius: 9999px !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: #374151 !important;
+  box-sizing: border-box !important;
+  box-shadow:
+    0 1px 3px 0 rgba(0, 0, 0, 0.1),
+    0 1px 2px -1px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.1) !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: #f9fafb !important;
+  color: #111827 !important;
 }
 
 .machimap-user-loc {

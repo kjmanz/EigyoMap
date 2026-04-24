@@ -367,8 +367,8 @@ export function MapPage() {
       <div className="relative min-h-0 flex-1">
         <Suspense fallback={<div className="flex h-full items-center justify-center text-gray-500">地図を読み込み中…</div>}>
 
-          {/* 訪問日凡例（折りたたみ式）: Leaflet ズーム(topleft)と被らないよう下に退避 */}
-          <div className="pointer-events-auto absolute left-3 top-24 z-[900]">
+          {/* 訪問日凡例（折りたたみ式）: Leaflet ズーム(topleft)との間隔を確保 */}
+          <div className="pointer-events-auto absolute left-3 top-[8.5rem] z-[900]">
             <button
               type="button"
               onClick={() => setLegendOpen((o) => !o)}
