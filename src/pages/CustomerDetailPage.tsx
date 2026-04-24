@@ -30,6 +30,7 @@ export function CustomerDetailPage() {
   const [name, setName] = useState("");
   const [memo, setMemo] = useState("");
   const [busy, setBusy] = useState(false);
+  const [quickDone, setQuickDone] = useState(false);
 
   const loadLabels = useCallback(async () => {
     if (!user) return;
@@ -231,6 +232,31 @@ export function CustomerDetailPage() {
     await load();
   }
 
+  async function quickRecord() {
+    if (!id || !user) return;
+    const visitedAt = new Date().toISOString();
+    if (!isOnline()) {
+      await enqueueOffline({
+        id: crypto.randomUUID(),
+        kind: "contact_log",
+        payload: { customerId: id, memo: "", visitedAt, photoBlobs: [] },
+      });
+      alert("オフラインのためキューに保存しました。");
+      return;
+    }
+    const { error } = await supabase.from("contact_logs").insert({
+      customer_id: id,
+      user_id: user.id,
+      memo: "",
+      visited_at: visitedAt,
+      pinned: false,
+    });
+    if (error) { alert(error.message); return; }
+    setQuickDone(true);
+    setTimeout(() => setQuickDone(false), 2500);
+    await load();
+  }
+
   async function togglePin(log: LogWithPhotos) {
     const next = !log.pinned;
     const { error } = await supabase
@@ -348,6 +374,31 @@ export function CustomerDetailPage() {
             ))}
           </div>
         )}
+        {!editing && (
+          <button
+            type="button"
+            className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 py-3 text-sm font-semibold text-white active:bg-green-700 disabled:opacity-60"
+            onClick={() => void quickRecord()}
+            disabled={busy}
+          >
+            {quickDone ? (
+              <>
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                記録しました
+              </>
+            ) : (
+              <>
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                今すぐ訪問記録
+              </>
+            )}
+          </button>
+        )}
+
         {!editing ? (
           <>
             <section className="rounded-xl border border-gray-200 border-l-4 border-l-accent bg-gradient-to-br from-slate-50 to-white py-3 pl-3 pr-3 shadow-sm">

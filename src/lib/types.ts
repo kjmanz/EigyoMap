@@ -27,6 +27,7 @@ export type LabelSummary = Pick<LabelRow, "id" | "name" | "color">;
 /** 顧客＋紐づくラベル（アプリ内で正規化した形） */
 export type CustomerMapRow = CustomerRow & {
   labels: LabelSummary[];
+  lastVisitedAt?: string | null;
 };
 
 export type ContactLogRow = {

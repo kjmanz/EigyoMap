@@ -40,6 +40,17 @@ export function pinColorFromLabels(labels: LabelSummary[]): string {
   return sorted[0].color || DEFAULT_MARKER_COLOR;
 }
 
+/** ピン色: 最終訪問日からの経過日数で色分け
+ * 緑=7日以内 / 橙=〜30日 / 赤=30日超 / グレー=未訪問
+ */
+export function pinColorFromLastVisit(lastVisitedAt: string | null | undefined): string {
+  if (!lastVisitedAt) return "#9ca3af";
+  const days = (Date.now() - new Date(lastVisitedAt).getTime()) / (1000 * 60 * 60 * 24);
+  if (days <= 7) return "#16a34a";
+  if (days <= 30) return "#d97706";
+  return "#dc2626";
+}
+
 /** #rrggbb から相対輝度でテキスト色（黒 or 白） */
 export function labelChipTextColor(hex: string): "#111827" | "#ffffff" {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
