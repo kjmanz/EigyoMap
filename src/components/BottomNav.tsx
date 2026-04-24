@@ -1,3 +1,4 @@
+import React from "react";
 import { Link } from "react-router-dom";
 import type { AppHeaderActiveNav } from "./AppHeader";
 
@@ -36,7 +37,7 @@ function SettingsIcon() {
   );
 }
 
-const TABS: { to: string; nav: AppHeaderActiveNav; label: string; Icon: () => JSX.Element }[] = [
+const TABS: { to: string; nav: AppHeaderActiveNav; label: string; Icon: () => React.ReactElement }[] = [
   { to: "/", nav: "map", label: "地図", Icon: MapIcon },
   { to: "/list", nav: "list", label: "一覧", Icon: ListIcon },
   { to: "/today", nav: "today", label: "今日", Icon: TodayIcon },
