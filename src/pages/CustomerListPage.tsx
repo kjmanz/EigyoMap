@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AppHeader } from "../components/AppHeader";
+import { BottomNav } from "../components/BottomNav";
+import { labelChipTextColor, labelsFromCustomerJoin } from "../lib/customerLabels";
+import { relativeDate } from "../lib/relativeDate";
 import { supabase } from "../lib/supabase";
-import type { ContactLogRow, CustomerRow } from "../lib/types";
+import type { ContactLogRow, CustomerRow, LabelSummary } from "../lib/types";
 import { useAuth } from "../contexts/AuthContext";
 
-type Row = CustomerRow & { lastVisit: string | null };
+type Row = CustomerRow & { lastVisit: string | null; labels: LabelSummary[] };
 
 export function CustomerListPage() {
   const { user } = useAuth();
@@ -16,7 +19,7 @@ export function CustomerListPage() {
     if (!user) return;
     const { data: customers, error } = await supabase
       .from("customers")
-      .select("*")
+      .select("*, customer_labels(label_id, labels(id, name, color))")
       .eq("user_id", user.id)
       .is("deleted_at", null);
     if (error || !customers) return;
@@ -30,9 +33,10 @@ export function CustomerListPage() {
       const cur = lastBy.get(l.customer_id);
       if (!cur || l.visited_at > cur) lastBy.set(l.customer_id, l.visited_at);
     }
-    const enriched: Row[] = (customers as CustomerRow[]).map((c) => ({
+    const enriched: Row[] = (customers as (CustomerRow & { customer_labels?: { label_id?: string; labels?: LabelSummary | null }[] })[]).map((c) => ({
       ...c,
       lastVisit: lastBy.get(c.id) ?? null,
+      labels: labelsFromCustomerJoin(c.customer_labels),
     }));
     enriched.sort((a, b) => {
       const ta = a.lastVisit ?? a.updated_at;
@@ -42,9 +46,7 @@ export function CustomerListPage() {
     setRows(enriched);
   }, [user]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useEffect(() => { void load(); }, [load]);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -53,31 +55,44 @@ export function CustomerListPage() {
   }, [rows, q]);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white pb-16">
       <AppHeader
         variant="main"
         title="顧客一覧"
         activeNav="list"
-        search={{
-          value: q,
-          onChange: setQ,
-          placeholder: "名前で検索",
-        }}
+        search={{ value: q, onChange: setQ, placeholder: "名前で検索" }}
       />
       <ul className="divide-y divide-gray-100">
         {filtered.map((c) => (
           <li key={c.id}>
-            <Link
-              to={`/customer/${c.id}`}
-              className="block px-4 py-3 hover:bg-gray-50"
-            >
-              <div className="font-medium text-gray-900">{c.name}</div>
-              <div className="text-xs text-gray-400">
-                最終訪問:{" "}
-                {c.lastVisit
-                  ? new Date(c.lastVisit).toLocaleDateString("ja-JP")
-                  : "—"}
+            <Link to={`/customer/${c.id}`} className="block px-4 py-3 active:bg-gray-50">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium text-gray-900">{c.name}</span>
+                <span className={`shrink-0 text-xs font-medium ${
+                  c.lastVisit
+                    ? (Date.now() - new Date(c.lastVisit).getTime()) / 86400000 > 30
+                      ? "text-red-500"
+                      : (Date.now() - new Date(c.lastVisit).getTime()) / 86400000 > 7
+                        ? "text-amber-600"
+                        : "text-green-600"
+                    : "text-gray-400"
+                }`}>
+                  {relativeDate(c.lastVisit)}
+                </span>
               </div>
+              {c.labels.length > 0 && (
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {c.labels.map((lb) => (
+                    <span
+                      key={lb.id}
+                      className="inline-block rounded-full px-2 py-0.5 text-[10px] font-medium"
+                      style={{ backgroundColor: lb.color, color: labelChipTextColor(lb.color) }}
+                    >
+                      {lb.name}
+                    </span>
+                  ))}
+                </div>
+              )}
             </Link>
           </li>
         ))}
@@ -85,6 +100,7 @@ export function CustomerListPage() {
       {filtered.length === 0 && (
         <p className="p-4 text-center text-sm text-gray-500">該当する顧客がありません。</p>
       )}
+      <BottomNav active="list" />
     </div>
   );
 }

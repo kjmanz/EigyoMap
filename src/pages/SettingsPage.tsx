@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AppHeader } from "../components/AppHeader";
+import { BottomNav } from "../components/BottomNav";
 import { supabase } from "../lib/supabase";
 import type { LabelRow } from "../lib/types";
 import { useAuth } from "../contexts/AuthContext";
@@ -127,7 +128,7 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white pb-16">
       <AppHeader variant="main" title="設定" activeNav="settings" />
       <div className="p-4">
       <section className="mb-8">
@@ -227,6 +228,7 @@ export function SettingsPage() {
         LINE 連携・Google 連携は Phase 2 以降の予定です。
       </p>
       </div>
+      <BottomNav active="settings" />
     </div>
   );
 }

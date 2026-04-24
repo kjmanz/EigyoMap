@@ -31,6 +31,9 @@ export function CustomerDetailPage() {
   const [memo, setMemo] = useState("");
   const [busy, setBusy] = useState(false);
   const [quickDone, setQuickDone] = useState(false);
+  const [inlineOpen, setInlineOpen] = useState(false);
+  const [inlineMemo, setInlineMemo] = useState("");
+  const [activeTab, setActiveTab] = useState<"info" | "history">("info");
 
   const loadLabels = useCallback(async () => {
     if (!user) return;
@@ -232,14 +235,14 @@ export function CustomerDetailPage() {
     await load();
   }
 
-  async function quickRecord() {
+  async function quickRecord(memoText = "") {
     if (!id || !user) return;
     const visitedAt = new Date().toISOString();
     if (!isOnline()) {
       await enqueueOffline({
         id: crypto.randomUUID(),
         kind: "contact_log",
-        payload: { customerId: id, memo: "", visitedAt, photoBlobs: [] },
+        payload: { customerId: id, memo: memoText, visitedAt, photoBlobs: [] },
       });
       alert("オフラインのためキューに保存しました。");
       return;
@@ -247,12 +250,14 @@ export function CustomerDetailPage() {
     const { error } = await supabase.from("contact_logs").insert({
       customer_id: id,
       user_id: user.id,
-      memo: "",
+      memo: memoText,
       visited_at: visitedAt,
       pinned: false,
     });
     if (error) { alert(error.message); return; }
     setQuickDone(true);
+    setInlineOpen(false);
+    setInlineMemo("");
     setTimeout(() => setQuickDone(false), 2500);
     await load();
   }
@@ -357,6 +362,26 @@ export function CustomerDetailPage() {
         }
       />
 
+      {/* タブバー */}
+      <div className="sticky top-[60px] z-[5] flex border-b border-gray-200 bg-white">
+        {(["info", "history"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setActiveTab(tab)}
+            className={`flex-1 py-3 text-sm font-medium transition-colors ${
+              activeTab === tab
+                ? "border-b-2 border-accent text-accent"
+                : "text-gray-500 active:bg-gray-50"
+            }`}
+          >
+            {tab === "info" ? "顧客情報" : "訪問履歴"}
+          </button>
+        ))}
+      </div>
+
+      {/* 顧客情報タブ */}
+      {activeTab === "info" && (
       <div className="p-4">
         {customer.labels.length > 0 && (
           <div className="mb-3 flex flex-wrap gap-1.5">
@@ -364,39 +389,68 @@ export function CustomerDetailPage() {
               <span
                 key={lb.id}
                 className="inline-block rounded-full px-2 py-0.5 text-xs font-medium"
-                style={{
-                  backgroundColor: lb.color,
-                  color: labelChipTextColor(lb.color),
-                }}
+                style={{ backgroundColor: lb.color, color: labelChipTextColor(lb.color) }}
               >
                 {lb.name}
               </span>
             ))}
           </div>
         )}
+
+        {/* クイック訪問記録（インライン展開） */}
         {!editing && (
-          <button
-            type="button"
-            className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 py-3 text-sm font-semibold text-white active:bg-green-700 disabled:opacity-60"
-            onClick={() => void quickRecord()}
-            disabled={busy}
-          >
-            {quickDone ? (
-              <>
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                記録しました
-              </>
-            ) : (
-              <>
+          <div className="mb-4">
+            {!inlineOpen && !quickDone && (
+              <button
+                type="button"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 py-3 text-sm font-semibold text-white active:bg-green-700"
+                onClick={() => setInlineOpen(true)}
+              >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
                 今すぐ訪問記録
-              </>
+              </button>
             )}
-          </button>
+            {inlineOpen && (
+              <div className="rounded-xl border border-green-200 bg-green-50 p-3">
+                <p className="mb-2 text-xs font-medium text-green-800">メモを追加できます（任意）</p>
+                <textarea
+                  className="w-full rounded border border-green-300 bg-white px-2 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-green-400"
+                  rows={2}
+                  placeholder="訪問内容（空欄でもOK）"
+                  value={inlineMemo}
+                  onChange={(e) => setInlineMemo(e.target.value)}
+                  autoFocus
+                />
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    className="flex-1 rounded-lg bg-green-600 py-2 text-sm font-semibold text-white active:bg-green-700"
+                    onClick={() => void quickRecord(inlineMemo)}
+                    disabled={busy}
+                  >
+                    記録する
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 active:bg-gray-50"
+                    onClick={() => { setInlineOpen(false); setInlineMemo(""); }}
+                  >
+                    キャンセル
+                  </button>
+                </div>
+              </div>
+            )}
+            {quickDone && (
+              <div className="flex items-center justify-center gap-2 rounded-xl bg-green-50 py-3 text-sm font-medium text-green-700">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                記録しました
+              </div>
+            )}
+          </div>
         )}
 
         {!editing ? (
@@ -493,7 +547,7 @@ export function CustomerDetailPage() {
             </div>
           </div>
         )}
-        {labelMaster.length > 0 && (
+        {labelMaster.length > 0 && !editing && (
           <div className="mt-6 border-t border-gray-100 pt-4">
             <h3 className="text-sm font-medium text-gray-700">ラベル</h3>
             <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto">
@@ -532,9 +586,12 @@ export function CustomerDetailPage() {
           </div>
         )}
       </div>
+      )}
 
+      {/* 訪問履歴タブ */}
+      {activeTab === "history" && (
       <section className="border-t border-gray-100 px-4 py-3">
-        <h2 className="text-sm font-medium text-gray-700">タイムライン</h2>
+        <h2 className="text-sm font-medium text-gray-700">訪問履歴</h2>
         <ul className="mt-2 space-y-3">
           {logs.map((log) => (
             <li
@@ -591,11 +648,14 @@ export function CustomerDetailPage() {
         </ul>
         {logs.length === 0 && <p className="text-sm text-gray-500">メモはまだありません。</p>}
       </section>
+      )}
 
-      <MemoComposer
-        onSubmit={(text, files) => void addMemo(files, text)}
-        onSync={() => void flushOfflineQueue().then(() => load())}
-      />
+      {activeTab === "history" && (
+        <MemoComposer
+          onSubmit={(text, files) => void addMemo(files, text)}
+          onSync={() => void flushOfflineQueue().then(() => load())}
+        />
+      )}
     </div>
   );
 }
