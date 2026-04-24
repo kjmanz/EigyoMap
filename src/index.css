@@ -13,6 +13,21 @@ body,
   font-family: system-ui, sans-serif;
 }
 
+.leaflet-top.leaflet-left {
+  top: 12px;
+  left: 12px;
+}
+
+.leaflet-control-zoom {
+  margin: 0 !important;
+}
+
+.leaflet-control-zoom a {
+  width: 40px !important;
+  height: 40px !important;
+  line-height: 40px !important;
+}
+
 .machimap-user-loc {
   background: transparent !important;
   border: none !important;

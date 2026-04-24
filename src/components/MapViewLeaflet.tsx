@@ -122,10 +122,11 @@ export const MapViewLeaflet = forwardRef<MapViewHandle, Props>(function MapViewL
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     const map = L.map(containerRef.current, {
-      zoomControl: true,
+      zoomControl: false,
       preferCanvas: true,
       maxZoom: MAP_MAX_ZOOM,
     });
+    L.control.zoom({ position: "topleft" }).addTo(map);
     const cached = readCachedMapCenter();
     const initialCenter: L.LatLngTuple = cached ? [cached.lat, cached.lng] : DEFAULT_CENTER;
     const initialZoom = cached?.zoom ?? 16;
