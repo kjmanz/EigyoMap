@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import type L from "leaflet";
 import { AppHeader, APP_HEADER_NAV_CLASS } from "../components/AppHeader";
 import type { MapViewHandle } from "../components/MapViewLeaflet";
-import { pinColorFromLabels, toCustomerMapRow } from "../lib/customerLabels";
+import { pinColorFromLastVisit, toCustomerMapRow } from "../lib/customerLabels";
 import {
   getMapAttributionText,
   MAP_BASE_LAYER_OPTIONS,
@@ -15,6 +15,7 @@ import {
   enqueueOffline,
   flushOfflineQueue,
   isOnline,
+  type OfflineContactPayload,
   type OfflineCustomerPayload,
 } from "../lib/offline";
 import { supabase } from "../lib/supabase";
@@ -60,6 +61,8 @@ export function MapPage() {
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
   const [dupWarning, setDupWarning] = useState<string | null>(null);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
+  const [quickMsg, setQuickMsg] = useState<string | null>(null);
+  const quickMsgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
   const [userLat, setUserLat] = useState<number | null>(null);
   const [userLng, setUserLng] = useState<number | null>(null);
@@ -88,7 +91,7 @@ export function MapPage() {
         id: c.id,
         lat: c.lat,
         lng: c.lng,
-        markerColor: pinColorFromLabels(c.labels),
+        markerColor: pinColorFromLastVisit(c.lastVisitedAt),
       })),
     [filteredCustomers]
   );
@@ -120,17 +123,30 @@ export function MapPage() {
       setCustomersLoaded(false);
       return;
     }
-    const { data: cus, error } = await supabase
-      .from("customers")
-      .select("*, customer_labels(label_id, labels(id, name, color))")
-      .eq("user_id", user.id)
-      .is("deleted_at", null)
-      .order("updated_at", { ascending: false });
+    const [{ data: cus, error }, { data: visits }] = await Promise.all([
+      supabase
+        .from("customers")
+        .select("*, customer_labels(label_id, labels(id, name, color))")
+        .eq("user_id", user.id)
+        .is("deleted_at", null)
+        .order("updated_at", { ascending: false }),
+      supabase
+        .from("contact_logs")
+        .select("customer_id, visited_at")
+        .eq("user_id", user.id)
+        .is("deleted_at", null)
+        .order("visited_at", { ascending: false }),
+    ]);
     if (!error && cus) {
+      const lastVisitMap = new Map<string, string>();
+      for (const v of (visits ?? []) as { customer_id: string; visited_at: string }[]) {
+        if (!lastVisitMap.has(v.customer_id)) lastVisitMap.set(v.customer_id, v.visited_at);
+      }
       setCustomers(
-        (cus as Parameters<typeof toCustomerMapRow>[0][]).map((row) =>
-          toCustomerMapRow(row)
-        )
+        (cus as Parameters<typeof toCustomerMapRow>[0][]).map((row) => ({
+          ...toCustomerMapRow(row),
+          lastVisitedAt: lastVisitMap.get(row.id) ?? null,
+        }))
       );
     }
     setCustomersLoaded(true);
@@ -311,6 +327,39 @@ export function MapPage() {
     await load();
   }
 
+  async function quickRecord(customerId: string) {
+    if (!user) return;
+    const visitedAt = new Date().toISOString();
+    const payload: OfflineContactPayload = { customerId, memo: "", visitedAt, photoBlobs: [] };
+
+    if (!isOnline()) {
+      await enqueueOffline({ id: crypto.randomUUID(), kind: "contact_log", payload });
+      showQuickMsg("オフラインのためキューに保存しました");
+      return;
+    }
+    const { error } = await supabase.from("contact_logs").insert({
+      customer_id: customerId,
+      user_id: user.id,
+      memo: "",
+      visited_at: visitedAt,
+      pinned: false,
+    });
+    if (error) {
+      showQuickMsg(`エラー: ${error.message}`);
+      return;
+    }
+    setCustomers((prev) =>
+      prev.map((c) => (c.id === customerId ? { ...c, lastVisitedAt: visitedAt } : c))
+    );
+    showQuickMsg("訪問を記録しました");
+  }
+
+  function showQuickMsg(msg: string) {
+    setQuickMsg(msg);
+    if (quickMsgTimer.current) clearTimeout(quickMsgTimer.current);
+    quickMsgTimer.current = setTimeout(() => setQuickMsg(null), 2500);
+  }
+
   return (
     <div className="flex h-[100dvh] flex-col bg-white">
       {relocateTarget && (
@@ -360,12 +409,31 @@ export function MapPage() {
         </div>
       )}
 
+      {quickMsg && (
+        <div className="flex items-center gap-2 border-b border-green-200 bg-green-50 px-3 py-1.5 text-xs text-green-900">
+          <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          <span>{quickMsg}</span>
+        </div>
+      )}
+
       <div className="relative min-h-0 flex-1">
         <Suspense
           fallback={
             <div className="flex h-full items-center justify-center text-gray-500">地図を読み込み中…</div>
           }
         >
+          {/* 訪問日凡例 */}
+          <div className="pointer-events-none absolute left-3 top-3 z-[900] rounded-lg bg-white/90 px-2.5 py-2 shadow-md ring-1 ring-black/10 backdrop-blur-sm">
+            <ul className="space-y-1 text-[11px] text-gray-700">
+              <li className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 shrink-0 rounded-full bg-[#16a34a]" />7日以内</li>
+              <li className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 shrink-0 rounded-full bg-[#d97706]" />〜30日</li>
+              <li className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 shrink-0 rounded-full bg-[#dc2626]" />30日超</li>
+              <li className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 shrink-0 rounded-full bg-[#9ca3af]" />未訪問</li>
+            </ul>
+          </div>
+
           <div className="pointer-events-none absolute right-3 top-3 z-[900]">
             <div className="pointer-events-auto inline-flex rounded-full bg-white/95 p-1 shadow-lg ring-1 ring-black/10 backdrop-blur-sm">
               {MAP_BASE_LAYER_OPTIONS.map((option) => {
@@ -453,10 +521,10 @@ export function MapPage() {
                       ? haversineMeters(userLat, userLng, c.lat, c.lng)
                       : null;
                   return (
-                    <li key={c.id} className="border-b border-gray-100 last:border-0">
+                    <li key={c.id} className="flex items-center border-b border-gray-100 last:border-0">
                       <button
                         type="button"
-                        className="flex w-full items-center gap-3 px-5 py-3.5 text-left active:bg-blue-50"
+                        className="flex min-w-0 flex-1 items-center gap-3 px-5 py-3.5 text-left active:bg-blue-50"
                         onClick={() => nav(`/customer/${c.id}`)}
                       >
                         {/* 顧客名 */}
@@ -472,6 +540,17 @@ export function MapPage() {
                         {/* 矢印 */}
                         <svg className="h-4 w-4 shrink-0 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                      {/* クイック訪問ボタン */}
+                      <button
+                        type="button"
+                        className="mr-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700 active:bg-green-200"
+                        title="訪問を記録"
+                        onClick={() => void quickRecord(c.id)}
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                       </button>
                     </li>
