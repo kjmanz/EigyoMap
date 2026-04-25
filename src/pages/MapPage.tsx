@@ -69,6 +69,7 @@ export function MapPage() {
   const [userLat, setUserLat] = useState<number | null>(null);
   const [userLng, setUserLng] = useState<number | null>(null);
   const [sheetOpen, setSheetOpen] = useState(true);
+  const lastSheetToggleAt = useRef(0);
   const [relocateDraft, setRelocateDraft] = useState<{ lat: number; lng: number } | null>(null);
   const [baseLayer, setBaseLayer] = useState<MapBaseLayer>(() => readPreferredMapBaseLayer());
   const [legendOpen, setLegendOpen] = useState(false);
@@ -238,6 +239,13 @@ export function MapPage() {
     },
     [relocateTarget]
   );
+
+  const toggleSheetOpen = useCallback(() => {
+    const now = Date.now();
+    if (now - lastSheetToggleAt.current < 380) return;
+    lastSheetToggleAt.current = now;
+    setSheetOpen((v) => !v);
+  }, []);
 
   function dismissMiniCard() {
     setSelectedCustomerId(null);
@@ -503,33 +511,39 @@ export function MapPage() {
         {/* ボトムシート */}
         {!selectedCustomer && (
           <div
-            className="absolute bottom-0 left-0 right-0 z-[1000] flex flex-col rounded-t-3xl bg-white transition-transform duration-300 ease-in-out"
-            style={{
-              maxHeight: "55%",
-              boxShadow: "0 -6px 24px rgba(0,0,0,0.18)",
-              paddingBottom: "env(safe-area-inset-bottom, 0px)",
-              transform: sheetOpen
-                ? "translateY(0)"
-                : "translateY(calc(100% - 68px))",
-            }}
+            className={`absolute bottom-0 left-0 right-0 z-[2200] flex min-h-0 flex-col rounded-t-3xl bg-white shadow-[0_-6px_24px_rgba(0,0,0,0.18)] transition-[max-height] duration-300 ease-in-out ${
+              sheetOpen ? "max-h-[55dvh]" : "max-h-[5.75rem] overflow-hidden"
+            }`}
+            style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+            onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
-              className="relative flex shrink-0 items-center justify-between rounded-t-3xl bg-white px-5 py-4 active:bg-gray-50"
-              onClick={() => setSheetOpen((v) => !v)}
+              className="relative flex w-full shrink-0 touch-manipulation select-none items-center justify-between rounded-t-3xl bg-white px-5 py-3.5 text-left [touch-action:manipulation] active:bg-gray-50"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleSheetOpen();
+              }}
             >
-              <div className="absolute left-1/2 top-[10px] h-[5px] w-12 -translate-x-1/2 rounded-full bg-gray-300" />
-              <span className="mt-1 text-[15px] font-semibold text-gray-800">この地図にある顧客</span>
-              <div className="mt-1 flex items-center gap-2">
+              <div className="pointer-events-none absolute left-1/2 top-2.5 h-1.5 w-10 -translate-x-1/2 rounded-full bg-gray-300" />
+              <span className="mt-1.5 text-[15px] font-semibold text-gray-800">この地図にある顧客</span>
+              <div className="mt-1.5 flex items-center gap-2">
                 <span className="rounded-full bg-blue-600 px-2.5 py-0.5 text-xs font-bold text-white">{visibleCustomers.length}件</span>
-                <svg className={`h-5 w-5 text-gray-400 transition-transform duration-300 ${sheetOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <svg
+                  className={`h-5 w-5 shrink-0 text-gray-400 transition-transform duration-300 ${sheetOpen ? "rotate-180" : ""}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2.5}
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
                 </svg>
               </div>
             </button>
-            <div className="flex-1 overflow-y-auto border-t border-gray-100">
+            <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain border-t border-gray-100 [-webkit-overflow-scrolling:touch]">
               {visibleCustomers.length === 0 ? (
-                <p className="py-6 text-center text-sm text-gray-400">この範囲に顧客はいません</p>
+                <p className="px-2 py-6 text-center text-sm text-gray-400">この範囲に顧客はいません</p>
               ) : (
                 <ul>
                   {visibleCustomers.map((c) => {
@@ -539,8 +553,12 @@ export function MapPage() {
                       <li key={c.id} className="flex items-center border-b border-gray-100 last:border-0">
                         <button
                           type="button"
-                          className="flex min-w-0 flex-1 items-center gap-3 px-5 py-3.5 text-left active:bg-blue-50"
-                          onClick={() => { nav(`/customer/${c.id}`); setSheetOpen(false); }}
+                          className="flex min-h-[48px] min-w-0 flex-1 items-center gap-3 px-5 py-3 text-left [touch-action:manipulation] active:bg-blue-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSheetOpen(false);
+                            nav(`/customer/${c.id}`);
+                          }}
                         >
                           <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-gray-800">{c.name}</span>
                           {dist != null && (
@@ -552,9 +570,12 @@ export function MapPage() {
                         </button>
                         <button
                           type="button"
-                          className="mr-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700 active:bg-green-200"
+                          className="mr-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700 [touch-action:manipulation] active:bg-green-200"
                           title="訪問を記録"
-                          onClick={() => void quickRecord(c.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void quickRecord(c.id);
+                          }}
                         >
                           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />

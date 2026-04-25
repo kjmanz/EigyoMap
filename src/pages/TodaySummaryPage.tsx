@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AppHeader } from "../components/AppHeader";
+import { PinnedPinIcon } from "../components/PinnedPinIcon";
 import { BottomNav } from "../components/BottomNav";
 import { getLocalDayRangeISO } from "../lib/todayRange";
 import { supabase } from "../lib/supabase";
@@ -44,9 +45,7 @@ function TodayLogListItem({ log, isExpanded, onToggle }: LogListItemProps) {
             <span className="shrink-0 text-xs text-gray-400">{timeStr}</span>
           </div>
           <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-            {log.pinned && (
-              <span className="rounded bg-accent px-1.5 py-0.5 text-[10px] font-medium text-white">ピン留め</span>
-            )}
+            {log.pinned && <PinnedPinIcon size="sm" />}
             {photoCount > 0 && (
               <span className="text-[10px] text-gray-400">写真 {photoCount} 枚</span>
             )}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AppHeader, APP_HEADER_NAV_CLASS } from "../components/AppHeader";
+import { PinnedPinIcon } from "../components/PinnedPinIcon";
 import { labelChipTextColor, toCustomerMapRow } from "../lib/customerLabels";
 import { canRestore, daysUntilPermanentDeletion } from "../lib/softDelete";
 import { fileToBase64Payload } from "../lib/files";
@@ -609,11 +610,7 @@ export function CustomerDetailPage() {
               >
                 <div className="flex flex-col gap-2 border-b border-gray-100/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0 flex flex-wrap items-center gap-2">
-                    {log.pinned && (
-                      <span className="shrink-0 rounded-md bg-accent px-2 py-0.5 text-[10px] font-bold text-white">
-                        ピン留め
-                      </span>
-                    )}
+                    {log.pinned && <PinnedPinIcon size="md" />}
                     <time
                       dateTime={log.visited_at}
                       className="text-sm font-medium tabular-nums text-gray-900"
