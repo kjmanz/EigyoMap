@@ -135,7 +135,19 @@ export function TodaySummaryPage() {
 
   useEffect(() => { void load(); }, [load]);
 
-  const visitRows = rows;
+  /** 同じ日に同顧客へ訪問記録とメモ付き訪問の両方があると行が二重になるため、顧客ごとに最新1件にまとめる */
+  const visitRows = useMemo(() => {
+    const byCustomer = new Map<string, TodayLogRow>();
+    for (const r of rows) {
+      const prev = byCustomer.get(r.customer_id);
+      if (!prev || new Date(r.visited_at) > new Date(prev.visited_at)) {
+        byCustomer.set(r.customer_id, r);
+      }
+    }
+    return Array.from(byCustomer.values()).sort(
+      (a, b) => new Date(b.visited_at).getTime() - new Date(a.visited_at).getTime(),
+    );
+  }, [rows]);
   const memoRows = useMemo(
     () => rows.filter((r) => r.memo.trim().length > 0),
     [rows],
@@ -208,7 +220,7 @@ export function TodaySummaryPage() {
           <section>
             <h2 className="bg-gray-50 px-4 py-2.5 text-sm font-semibold text-gray-800">
               訪問一覧
-              <span className="ml-2 text-xs font-normal text-gray-500">（{visitRows.length} 件・時刻順）</span>
+              <span className="ml-2 text-xs font-normal text-gray-500">（{visitRows.length} 名・同顧客は最新の訪問のみ）</span>
             </h2>
             {visitRows.length === 0 ? (
               <p className="px-4 py-3 text-sm text-gray-500">訪問の記録はありません</p>
