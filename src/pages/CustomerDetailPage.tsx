@@ -367,12 +367,13 @@ export function CustomerDetailPage() {
       </div>
 
       <div
-        className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain [scroll-padding-bottom:12rem]"
         style={{
-          paddingBottom: "max(8.5rem, calc(env(safe-area-inset-bottom, 0px) + 5.5rem))",
+          /* 訪問メモ固定フッター（＋安全域）より十分大きく — 8.5rem だと最終行が隠れる */
+          paddingBottom: "max(17rem, calc(env(safe-area-inset-bottom, 0px) + 12rem))",
         }}
       >
-        <div className="mx-auto max-w-lg space-y-5 px-3 pb-2 pt-3 sm:px-4 sm:pt-4">
+        <div className="mx-auto max-w-lg space-y-5 px-3 pb-4 pt-3 sm:px-4 sm:pt-4">
         <div>
           <h2 className="text-sm font-bold text-gray-500">顧客情報</h2>
           <div className="mt-2 rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm">
@@ -593,7 +594,7 @@ export function CustomerDetailPage() {
           </div>
         </div>
 
-        <section className="pb-1">
+        <section className="pb-2">
           <h2 className="text-sm font-bold text-gray-500">訪問履歴</h2>
           <p className="mt-0.5 text-xs text-gray-500">新しいものが上に表示されます</p>
           <ul className="mt-3 space-y-3">
