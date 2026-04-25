@@ -33,7 +33,6 @@ export function CustomerDetailPage() {
   const [quickDone, setQuickDone] = useState(false);
   const [inlineOpen, setInlineOpen] = useState(false);
   const [inlineMemo, setInlineMemo] = useState("");
-  const [activeTab, setActiveTab] = useState<"info" | "history">("info");
 
   const loadLabels = useCallback(async () => {
     if (!user) return;
@@ -365,27 +364,8 @@ export function CustomerDetailPage() {
         }
       />
 
-      {/* タブバー */}
-      <div className="sticky top-[60px] z-[5] flex border-b border-gray-200 bg-white">
-        {(["info", "history"] as const).map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-3 text-sm font-medium transition-colors ${
-              activeTab === tab
-                ? "border-b-2 border-accent text-accent"
-                : "text-gray-500 active:bg-gray-50"
-            }`}
-          >
-            {tab === "info" ? "顧客情報" : "訪問履歴"}
-          </button>
-        ))}
-      </div>
-
-      {/* 顧客情報タブ */}
-      {activeTab === "info" && (
       <div className="p-4">
+        <h2 className="mb-3 text-base font-semibold text-gray-900">顧客情報</h2>
         {customer.labels.length > 0 && (
           <div className="mb-3 flex flex-wrap gap-1.5">
             {customer.labels.map((lb) => (
@@ -589,12 +569,9 @@ export function CustomerDetailPage() {
           </div>
         )}
       </div>
-      )}
 
-      {/* 訪問履歴タブ */}
-      {activeTab === "history" && (
       <section className="border-t border-gray-100 px-4 py-3">
-        <h2 className="text-sm font-medium text-gray-700">訪問履歴</h2>
+        <h2 className="text-base font-semibold text-gray-900">訪問履歴</h2>
         <ul className="mt-2 space-y-3">
           {logs.map((log) => (
             <li
@@ -651,14 +628,11 @@ export function CustomerDetailPage() {
         </ul>
         {logs.length === 0 && <p className="text-sm text-gray-500">メモはまだありません。</p>}
       </section>
-      )}
 
-      {activeTab === "history" && (
-        <MemoComposer
-          onSubmit={(text, files) => void addMemo(files, text)}
-          onSync={() => void flushOfflineQueue().then(() => load())}
-        />
-      )}
+      <MemoComposer
+        onSubmit={(text, files) => void addMemo(files, text)}
+        onSync={() => void flushOfflineQueue().then(() => load())}
+      />
     </div>
   );
 }
