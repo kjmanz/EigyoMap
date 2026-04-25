@@ -352,7 +352,10 @@ export function CustomerDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white pb-24">
+    <div
+      className="min-h-screen bg-gray-50"
+      style={{ paddingBottom: "max(9rem, calc(env(safe-area-inset-bottom, 0px) + 5.5rem))" }}
+    >
       <AppHeader
         variant="back"
         title={customer.name}
@@ -364,270 +367,309 @@ export function CustomerDetailPage() {
         }
       />
 
-      <div className="p-4">
-        <h2 className="mb-3 text-base font-semibold text-gray-900">顧客情報</h2>
-        {customer.labels.length > 0 && (
-          <div className="mb-3 flex flex-wrap gap-1.5">
-            {customer.labels.map((lb) => (
-              <span
-                key={lb.id}
-                className="inline-block rounded-full px-2 py-0.5 text-xs font-medium"
-                style={{ backgroundColor: lb.color, color: labelChipTextColor(lb.color) }}
-              >
-                {lb.name}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* クイック訪問記録（インライン展開） */}
-        {!editing && (
-          <div className="mb-4">
-            {!inlineOpen && !quickDone && (
-              <button
-                type="button"
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 py-3 text-sm font-semibold text-white active:bg-green-700"
-                onClick={() => setInlineOpen(true)}
-              >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-                今すぐ訪問記録
-              </button>
+      <div className="mx-auto max-w-lg space-y-5 px-3 pb-2 pt-3 sm:px-4 sm:pt-4">
+        <div>
+          <h2 className="text-sm font-bold text-gray-500">顧客情報</h2>
+          <div className="mt-2 rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm">
+            {customer.labels.length > 0 && (
+              <div className="mb-4 flex flex-wrap gap-1.5">
+                {customer.labels.map((lb) => (
+                  <span
+                    key={lb.id}
+                    className="inline-block rounded-full px-2.5 py-1 text-xs font-medium"
+                    style={{ backgroundColor: lb.color, color: labelChipTextColor(lb.color) }}
+                  >
+                    {lb.name}
+                  </span>
+                ))}
+              </div>
             )}
-            {inlineOpen && (
-              <div className="rounded-xl border border-green-200 bg-green-50 p-3">
-                <p className="mb-2 text-xs font-medium text-green-800">メモを追加できます（任意）</p>
-                <textarea
-                  className="w-full rounded border border-green-300 bg-white px-2 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-green-400"
-                  rows={2}
-                  placeholder="訪問内容（空欄でもOK）"
-                  value={inlineMemo}
-                  onChange={(e) => setInlineMemo(e.target.value)}
-                  autoFocus
-                />
-                <div className="mt-2 flex gap-2">
+
+            {/* クイック訪問記録 */}
+            {!editing && (
+              <div className="mb-4">
+                {!inlineOpen && !quickDone && (
                   <button
                     type="button"
-                    className="flex-1 rounded-lg bg-green-600 py-2 text-sm font-semibold text-white active:bg-green-700"
-                    onClick={() => void quickRecord(inlineMemo)}
-                    disabled={busy}
+                    className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white shadow-sm active:bg-emerald-700"
+                    onClick={() => setInlineOpen(true)}
                   >
-                    記録する
+                    <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                    今すぐ訪問を記録
+                  </button>
+                )}
+                {inlineOpen && (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3">
+                    <p className="mb-2 text-xs font-medium text-emerald-900/90">訪問メモ（任意・空欄で記録できます）</p>
+                    <textarea
+                      className="w-full rounded-lg border border-emerald-200/80 bg-white px-3 py-2.5 text-sm leading-relaxed text-gray-900 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/30"
+                      rows={3}
+                      placeholder="訪問内容（空欄でもOK）"
+                      value={inlineMemo}
+                      onChange={(e) => setInlineMemo(e.target.value)}
+                      autoFocus
+                    />
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        type="button"
+                        className="min-h-[44px] flex-1 rounded-lg bg-emerald-600 py-2.5 text-sm font-semibold text-white active:bg-emerald-700"
+                        onClick={() => void quickRecord(inlineMemo)}
+                        disabled={busy}
+                      >
+                        記録する
+                      </button>
+                      <button
+                        type="button"
+                        className="min-h-[44px] rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 active:bg-gray-50"
+                        onClick={() => { setInlineOpen(false); setInlineMemo(""); }}
+                      >
+                        キャンセル
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {quickDone && (
+                  <div className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 py-3 text-sm font-medium text-emerald-800">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    記録しました
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!editing ? (
+              <>
+                <div className="rounded-xl border border-l-4 border-l-accent border-gray-200 bg-slate-50/80 p-4">
+                  <h3 className="text-sm font-semibold text-gray-900">顧客メモ</h3>
+                  <p className="mt-1 text-xs leading-relaxed text-gray-500">
+                    顧客全体の共有メモ。日々の訪問内容は下の「訪問履歴」に記録されます。
+                  </p>
+                  <div className="mt-3 text-sm leading-[1.65] text-gray-800">
+                    {customer.memo?.trim() ? (
+                      <p className="whitespace-pre-wrap break-words">{customer.memo}</p>
+                    ) : (
+                      <p className="text-gray-400">まだありません。下の「名前・メモを編集」で追加できます。</p>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-3">
+                  <button
+                    type="button"
+                    className="min-h-[44px] flex-1 rounded-xl border-2 border-accent/30 bg-white px-4 py-2.5 text-sm font-semibold text-accent shadow-sm active:bg-blue-50/50"
+                    onClick={() => setEditing(true)}
+                  >
+                    名前・メモを編集
                   </button>
                   <button
                     type="button"
-                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 active:bg-gray-50"
-                    onClick={() => { setInlineOpen(false); setInlineMemo(""); }}
+                    className="min-h-[44px] rounded-xl border border-red-200 bg-red-50/50 px-4 py-2.5 text-sm font-medium text-red-700 active:bg-red-100/50"
+                    onClick={() => void deleteCustomer()}
+                    disabled={busy}
+                  >
+                    顧客を削除
+                  </button>
+                </div>
+                {isOnline() ? (
+                  <Link
+                    to={`/?relocate=${customer.id}`}
+                    className="mt-4 inline-flex min-h-[44px] items-center text-sm font-medium text-accent underline decoration-accent/30 underline-offset-2"
+                  >
+                    位置を地図で修正
+                  </Link>
+                ) : (
+                  <p className="mt-3 text-xs text-gray-500">
+                    位置の修正はオンライン時に地図から行ってください。
+                  </p>
+                )}
+              </>
+            ) : (
+              <div className="flex flex-col gap-4">
+                <label className="text-sm font-medium text-gray-800">
+                  お客様名
+                  <input
+                    className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-base text-gray-900 shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </label>
+                <div className="rounded-xl border border-l-4 border-l-accent border-gray-200 bg-white p-4 shadow-sm">
+                  <h3 className="text-sm font-semibold text-gray-900">顧客メモ</h3>
+                  <p className="mt-1 text-xs leading-relaxed text-gray-500">
+                    訪問内容は下の訪問履歴へ。ここは顧客全体向けのメモです。
+                  </p>
+                  <label className="mt-3 block text-sm text-gray-800">
+                    <span className="text-gray-600">顧客メモ（任意）</span>
+                    <textarea
+                      className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm leading-relaxed focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                      rows={4}
+                      value={memo}
+                      onChange={(e) => setMemo(e.target.value)}
+                      placeholder="例: 担当者名、契約番号、注意事項など"
+                    />
+                  </label>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <button
+                    type="button"
+                    className="min-h-[44px] flex-1 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white shadow-sm active:opacity-90"
+                    onClick={() => void saveCustomer()}
+                    disabled={busy}
+                  >
+                    保存
+                  </button>
+                  <button
+                    type="button"
+                    className="min-h-[44px] rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 active:bg-gray-50"
+                    onClick={() => {
+                      setEditing(false);
+                      setName(customer.name);
+                      setMemo(customer.memo ?? "");
+                    }}
                   >
                     キャンセル
                   </button>
                 </div>
               </div>
             )}
-            {quickDone && (
-              <div className="flex items-center justify-center gap-2 rounded-xl bg-green-50 py-3 text-sm font-medium text-green-700">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                記録しました
+            {labelMaster.length > 0 && !editing && (
+              <div className="mt-5 border-t border-gray-100 pt-4">
+                <h3 className="text-sm font-semibold text-gray-800">ラベル</h3>
+                <ul className="mt-2 max-h-48 space-y-0.5 overflow-y-auto rounded-lg border border-gray-100 bg-gray-50/50 p-2">
+                  {labelMaster.map((lb) => (
+                    <li key={lb.id}>
+                      <label className="flex min-h-[44px] cursor-pointer items-center gap-3 rounded-lg px-2 py-1 text-sm text-gray-800 active:bg-white">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-gray-300 text-accent focus:ring-accent"
+                          checked={selectedLabelIds.includes(lb.id)}
+                          onChange={(e) => {
+                            setSelectedLabelIds((prev) =>
+                              e.target.checked
+                                ? [...prev, lb.id]
+                                : prev.filter((x) => x !== lb.id)
+                            );
+                          }}
+                          disabled={busy}
+                        />
+                        <span
+                          className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-white shadow-sm"
+                          style={{ backgroundColor: lb.color }}
+                        />
+                        {lb.name}
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  className="mt-3 w-full min-h-[44px] rounded-xl bg-accent py-2.5 text-sm font-semibold text-white shadow-sm active:opacity-90 disabled:opacity-50"
+                  disabled={busy}
+                  onClick={() => void saveLabels()}
+                >
+                  ラベルを保存
+                </button>
               </div>
             )}
           </div>
-        )}
+        </div>
 
-        {!editing ? (
-          <>
-            <section className="rounded-xl border border-gray-200 border-l-4 border-l-accent bg-gradient-to-br from-slate-50 to-white py-3 pl-3 pr-3 shadow-sm">
-              <h2 className="text-sm font-semibold text-gray-900">顧客メモ</h2>
-              <p className="mt-1 text-[11px] leading-relaxed text-gray-500">
-                登録時や共有用のメモです。訪問の記録は下のタイムラインに追加してください。
-              </p>
-              <div className="mt-3 text-sm leading-relaxed text-gray-800">
-                {customer.memo?.trim() ? (
-                  <p className="whitespace-pre-wrap">{customer.memo}</p>
-                ) : (
-                  <p className="text-gray-400">顧客メモはまだありません。「編集」から追加できます。</p>
-                )}
-              </div>
-            </section>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="rounded border border-gray-300 px-3 py-2 text-sm"
-                onClick={() => setEditing(true)}
+        <section className="pb-1">
+          <h2 className="text-sm font-bold text-gray-500">訪問履歴</h2>
+          <p className="mt-0.5 text-xs text-gray-500">新しいものが上に表示されます</p>
+          <ul className="mt-3 space-y-3">
+            {logs.map((log) => (
+              <li
+                key={log.id}
+                className={`overflow-hidden rounded-2xl border text-sm shadow-sm ${
+                  log.pinned
+                    ? "border-accent/40 bg-gradient-to-b from-blue-50/90 to-white"
+                    : "border-gray-200 bg-white"
+                }`}
               >
-                編集
-              </button>
-              <button
-                type="button"
-                className="rounded border border-red-200 px-3 py-2 text-sm text-red-700"
-                onClick={() => void deleteCustomer()}
-                disabled={busy}
-              >
-                削除
-              </button>
-            </div>
-            {isOnline() ? (
-              <Link
-                to={`/?relocate=${customer.id}`}
-                className="mt-3 inline-block text-sm text-accent underline"
-              >
-                位置を地図で修正
-              </Link>
-            ) : (
-              <p className="mt-3 text-xs text-gray-500">
-                位置の修正はオンライン時に地図から行ってください。
-              </p>
-            )}
-          </>
-        ) : (
-          <div className="flex flex-col gap-4">
-            <label className="text-sm text-gray-800">
-              お客様名
-              <input
-                className="mt-1 w-full rounded border border-gray-300 px-2 py-2"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </label>
-            <div className="rounded-xl border border-gray-200 border-l-4 border-l-accent bg-white py-3 pl-3 pr-3 shadow-sm">
-              <h3 className="text-sm font-semibold text-gray-900">顧客メモ</h3>
-              <p className="mt-1 text-[11px] leading-relaxed text-gray-500">
-                訪問の記録はタイムラインへ。ここは顧客全体で共有したい内容向けです。
-              </p>
-              <label className="mt-3 block text-sm text-gray-800">
-                <span className="text-gray-600">顧客メモ（任意）</span>
-                <textarea
-                  className="mt-1 w-full rounded border border-gray-300 px-2 py-2"
-                  rows={4}
-                  value={memo}
-                  onChange={(e) => setMemo(e.target.value)}
-                  placeholder="例: 担当者名、契約番号、注意事項など"
-                />
-              </label>
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                className="rounded bg-accent px-4 py-2 text-sm text-white"
-                onClick={() => void saveCustomer()}
-                disabled={busy}
-              >
-                保存
-              </button>
-              <button
-                type="button"
-                className="rounded border border-gray-300 px-4 py-2 text-sm"
-                onClick={() => {
-                  setEditing(false);
-                  setName(customer.name);
-                  setMemo(customer.memo ?? "");
-                }}
-              >
-                キャンセル
-              </button>
-            </div>
-          </div>
-        )}
-        {labelMaster.length > 0 && !editing && (
-          <div className="mt-6 border-t border-gray-100 pt-4">
-            <h3 className="text-sm font-medium text-gray-700">ラベル</h3>
-            <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto">
-              {labelMaster.map((lb) => (
-                <li key={lb.id}>
-                  <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-800">
-                    <input
-                      type="checkbox"
-                      checked={selectedLabelIds.includes(lb.id)}
-                      onChange={(e) => {
-                        setSelectedLabelIds((prev) =>
-                          e.target.checked
-                            ? [...prev, lb.id]
-                            : prev.filter((x) => x !== lb.id)
-                        );
-                      }}
+                <div className="flex flex-col gap-2 border-b border-gray-100/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0 flex flex-wrap items-center gap-2">
+                    {log.pinned && (
+                      <span className="shrink-0 rounded-md bg-accent px-2 py-0.5 text-[10px] font-bold text-white">
+                        ピン留め
+                      </span>
+                    )}
+                    <time
+                      dateTime={log.visited_at}
+                      className="text-sm font-medium tabular-nums text-gray-900"
+                    >
+                      {new Date(log.visited_at).toLocaleString("ja-JP", {
+                        month: "numeric",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        weekday: "short",
+                      })}
+                    </time>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap gap-1.5 sm:justify-end">
+                    <button
+                      type="button"
+                      className="rounded-lg bg-gray-100 px-2.5 py-1.5 text-xs font-medium text-gray-800 active:bg-gray-200"
+                      onClick={() => void togglePin(log)}
                       disabled={busy}
-                    />
-                    <span
-                      className="inline-block h-3 w-3 shrink-0 rounded-full border border-gray-300"
-                      style={{ backgroundColor: lb.color }}
-                    />
-                    {lb.name}
-                  </label>
-                </li>
-              ))}
-            </ul>
-            <button
-              type="button"
-              className="mt-3 rounded bg-accent px-4 py-2 text-sm text-white disabled:opacity-50"
-              disabled={busy}
-              onClick={() => void saveLabels()}
-            >
-              ラベルを保存
-            </button>
-          </div>
-        )}
-      </div>
-
-      <section className="border-t border-gray-100 px-4 py-3">
-        <h2 className="text-base font-semibold text-gray-900">訪問履歴</h2>
-        <ul className="mt-2 space-y-3">
-          {logs.map((log) => (
-            <li
-              key={log.id}
-              className={`rounded border p-3 text-sm ${
-                log.pinned ? "border-accent bg-blue-50/80" : "border-gray-200"
-              }`}
-            >
-              <div className="flex justify-between gap-2 text-xs text-gray-500">
-                <div className="flex flex-wrap items-center gap-2">
-                  {log.pinned && (
-                    <span className="rounded bg-accent px-1.5 py-0.5 text-[10px] font-medium text-white">
-                      ピン留め
-                    </span>
+                    >
+                      {log.pinned ? "解除" : "ピン留め"}
+                    </button>
+                    <Link
+                      to={`/customer/${id}/memo/${log.id}`}
+                      className="rounded-lg bg-accent/10 px-2.5 py-1.5 text-xs font-semibold text-accent active:bg-accent/20"
+                    >
+                      編集
+                    </Link>
+                    <button
+                      type="button"
+                      className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-red-600 active:bg-red-50"
+                      onClick={() => void deleteLog(log)}
+                    >
+                      削除
+                    </button>
+                  </div>
+                </div>
+                <div className="px-4 py-3">
+                  <p className="whitespace-pre-wrap break-words leading-relaxed text-gray-800">
+                    {log.memo?.trim() ? log.memo : <span className="text-sm text-gray-400">（訪問メモなし）</span>}
+                  </p>
+                  {(log.photos?.length ?? 0) > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {(log.photos ?? []).map((p) =>
+                        urls[p.id] ? (
+                          <a
+                            key={p.id}
+                            href={urls[p.id]}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="overflow-hidden rounded-lg ring-1 ring-gray-200"
+                          >
+                            <img
+                              src={urls[p.id]}
+                              alt=""
+                              className="h-24 w-24 object-cover"
+                            />
+                          </a>
+                        ) : null
+                      )}
+                    </div>
                   )}
-                  <time dateTime={log.visited_at}>
-                    {new Date(log.visited_at).toLocaleString("ja-JP")}
-                  </time>
                 </div>
-                <div className="flex shrink-0 flex-wrap justify-end gap-2">
-                  <button
-                    type="button"
-                    className="text-gray-700"
-                    onClick={() => void togglePin(log)}
-                    disabled={busy}
-                    title={log.pinned ? "ピンを外す" : "ピン留め"}
-                  >
-                    {log.pinned ? "解除" : "ピン留め"}
-                  </button>
-                  <Link to={`/customer/${id}/memo/${log.id}`} className="text-accent">
-                    編集
-                  </Link>
-                  <button type="button" className="text-red-600" onClick={() => void deleteLog(log)}>
-                    削除
-                  </button>
-                </div>
-              </div>
-              <p className="mt-2 whitespace-pre-wrap text-gray-800">{log.memo}</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {(log.photos ?? []).map((p) =>
-                  urls[p.id] ? (
-                    <a key={p.id} href={urls[p.id]} target="_blank" rel="noreferrer">
-                      <img
-                        src={urls[p.id]}
-                        alt=""
-                        className="h-20 w-20 rounded object-cover"
-                      />
-                    </a>
-                  ) : null
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
-        {logs.length === 0 && <p className="text-sm text-gray-500">メモはまだありません。</p>}
-      </section>
+              </li>
+            ))}
+          </ul>
+          {logs.length === 0 && (
+            <p className="mt-2 rounded-xl border border-dashed border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-500">
+              まだ訪問の記録がありません。上のボタンか、下のフォームから追加できます。
+            </p>
+          )}
+        </section>
+      </div>
 
       <MemoComposer
         onSubmit={(text, files) => void addMemo(files, text)}
@@ -659,10 +701,16 @@ function MemoComposer({
   const canSave = text.trim().length > 0 || photoFiles.length > 0;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 bg-white p-3 shadow-lg">
-      <p className="text-xs text-gray-600">メモ追加（音声入力はキーボードのマイクから利用できます）</p>
+    <div
+      className="fixed bottom-0 left-0 right-0 z-20 border-t border-gray-200/90 bg-white/95 px-3 pt-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] backdrop-blur-sm sm:px-4"
+      style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))" }}
+    >
+      <p className="text-center text-xs font-medium text-gray-500">
+        訪問メモを追加
+        <span className="mt-0.5 block text-[11px] font-normal text-gray-400">音声入力はキーボードのマイクから</span>
+      </p>
       <textarea
-        className="mt-2 w-full rounded border border-gray-300 px-2 py-2 text-sm"
+        className="mt-2 w-full rounded-xl border border-gray-200 bg-gray-50/80 px-3 py-2.5 text-sm leading-relaxed text-gray-900 shadow-inner focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/20"
         rows={2}
         placeholder="訪問内容"
         value={text}
@@ -698,14 +746,14 @@ function MemoComposer({
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <button
           type="button"
-          className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-800"
+          className="min-h-[40px] rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-800 active:bg-gray-50"
           onClick={() => cameraInputRef.current?.click()}
         >
           撮影
         </button>
         <button
           type="button"
-          className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-800"
+          className="min-h-[40px] rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-800 active:bg-gray-50"
           onClick={() => galleryInputRef.current?.click()}
         >
           アルバムから
@@ -723,14 +771,18 @@ function MemoComposer({
           </>
         )}
       </div>
-      <div className="mt-2 flex items-center justify-between gap-2">
-        <button type="button" className="text-xs text-accent underline" onClick={onSync}>
+      <div className="mt-2 flex min-h-[44px] items-center justify-between gap-2 pb-0.5">
+        <button
+          type="button"
+          className="text-xs font-medium text-accent underline decoration-accent/30 underline-offset-2"
+          onClick={onSync}
+        >
           オフライン同期
         </button>
         {canSave && (
           <button
             type="button"
-            className="rounded bg-accent px-4 py-2 text-sm text-white"
+            className="rounded-xl bg-accent px-5 py-2 text-sm font-semibold text-white shadow-sm active:opacity-90"
             onClick={() => {
               onSubmit(text, photoFiles.length > 0 ? photoFiles : null);
               setText("");
