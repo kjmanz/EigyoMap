@@ -587,8 +587,8 @@ export function MapPage() {
       <div className="h-14 shrink-0" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }} />
 
       {registerOpen && (
-        <div className="fixed inset-0 z-[1000] flex items-end justify-center bg-black/40 sm:items-center">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-lg bg-white p-4 shadow-lg sm:rounded-lg">
+        <div className="fixed inset-0 z-[3000] flex items-end justify-center bg-black/40 sm:items-center">
+          <div className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-lg bg-white p-4 shadow-lg sm:rounded-lg" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom, 0px))" }}>
             <h2 className="text-lg font-semibold text-gray-800">顧客を登録</h2>
             {dupWarning && <p className="mt-2 text-sm text-amber-700">{dupWarning}</p>}
             <div className="mt-3 flex flex-col gap-2 text-sm">
@@ -634,8 +634,8 @@ export function MapPage() {
       )}
 
       {relocateDraft && relocateTarget && (
-        <div className="fixed inset-0 z-[1000] flex items-end justify-center bg-black/40 sm:items-center">
-          <div className="w-full max-w-lg rounded-t-lg bg-white p-4 shadow-lg sm:rounded-lg">
+        <div className="fixed inset-0 z-[3000] flex items-end justify-center bg-black/40 sm:items-center">
+          <div className="w-full max-w-lg rounded-t-lg bg-white p-4 shadow-lg sm:rounded-lg" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom, 0px))" }}>
             <h2 className="text-lg font-semibold text-gray-800">位置を更新</h2>
             <p className="mt-2 text-sm text-gray-600">「{relocateTarget.name}」のピンをこの座標に移しますか？</p>
             <p className="mt-1 font-mono text-xs text-gray-500">{relocateDraft.lat.toFixed(6)}, {relocateDraft.lng.toFixed(6)}</p>
