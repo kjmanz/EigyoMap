@@ -352,22 +352,27 @@ export function CustomerDetailPage() {
   }
 
   return (
-    <div
-      className="min-h-screen bg-gray-50"
-      style={{ paddingBottom: "max(9rem, calc(env(safe-area-inset-bottom, 0px) + 5.5rem))" }}
-    >
-      <AppHeader
-        variant="back"
-        title={customer.name}
-        onBack={() => nav(-1)}
-        rightSlot={
-          <Link to={`/?highlight=${customer.id}`} className={APP_HEADER_NAV_CLASS}>
-            地図
-          </Link>
-        }
-      />
+    <div className="flex h-[100dvh] max-h-[100dvh] min-h-0 w-full flex-col overflow-hidden bg-gray-50">
+      <div className="shrink-0">
+        <AppHeader
+          variant="back"
+          title={customer.name}
+          onBack={() => nav(-1)}
+          rightSlot={
+            <Link to={`/?highlight=${customer.id}`} className={APP_HEADER_NAV_CLASS}>
+              地図
+            </Link>
+          }
+        />
+      </div>
 
-      <div className="mx-auto max-w-lg space-y-5 px-3 pb-2 pt-3 sm:px-4 sm:pt-4">
+      <div
+        className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain"
+        style={{
+          paddingBottom: "max(8.5rem, calc(env(safe-area-inset-bottom, 0px) + 5.5rem))",
+        }}
+      >
+        <div className="mx-auto max-w-lg space-y-5 px-3 pb-2 pt-3 sm:px-4 sm:pt-4">
         <div>
           <h2 className="text-sm font-bold text-gray-500">顧客情報</h2>
           <div className="mt-2 rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm">
@@ -443,20 +448,31 @@ export function CustomerDetailPage() {
 
             {!editing ? (
               <>
-                <div className="rounded-xl border border-l-4 border-l-accent border-gray-200 bg-slate-50/80 p-4">
-                  <h3 className="text-sm font-semibold text-gray-900">顧客メモ</h3>
-                  <p className="mt-1 text-xs leading-relaxed text-gray-500">
-                    顧客全体の共有メモ。日々の訪問内容は下の「訪問履歴」に記録されます。
-                  </p>
-                  <div className="mt-3 text-sm leading-[1.65] text-gray-800">
-                    {customer.memo?.trim() ? (
-                      <p className="whitespace-pre-wrap break-words">{customer.memo}</p>
-                    ) : (
-                      <p className="text-gray-400">まだありません。下の「名前・メモを編集」で追加できます。</p>
-                    )}
+                {customer.memo?.trim() ? (
+                  <div className="rounded-xl border border-l-4 border-l-accent border-gray-200 bg-slate-50/80 p-3 sm:p-4">
+                    <h3 className="text-sm font-semibold text-gray-900">顧客メモ</h3>
+                    <p className="mt-1 text-xs leading-relaxed text-gray-500">
+                      顧客全体の共有メモ。日々の訪問内容は下の「訪問履歴」に記録されます。
+                    </p>
+                    <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-[1.65] text-gray-800">
+                      {customer.memo}
+                    </p>
                   </div>
-                </div>
-                <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-3">
+                ) : (
+                  <div className="flex min-h-0 items-center justify-between gap-2 rounded-lg border border-dashed border-gray-200 bg-white px-2.5 py-1.5">
+                    <p className="min-w-0 text-[11px] leading-snug text-gray-500">
+                      顧客メモ（未登録）· 共有用の補足は「入力」で
+                    </p>
+                    <button
+                      type="button"
+                      className="shrink-0 rounded-md px-2 py-1.5 text-xs font-semibold text-accent active:bg-blue-50"
+                      onClick={() => setEditing(true)}
+                    >
+                      入力
+                    </button>
+                  </div>
+                )}
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-3">
                   <button
                     type="button"
                     className="min-h-[44px] flex-1 rounded-xl border-2 border-accent/30 bg-white px-4 py-2.5 text-sm font-semibold text-accent shadow-sm active:bg-blue-50/50"
@@ -669,6 +685,7 @@ export function CustomerDetailPage() {
             </p>
           )}
         </section>
+        </div>
       </div>
 
       <MemoComposer
@@ -702,17 +719,17 @@ function MemoComposer({
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-20 border-t border-gray-200/90 bg-white/95 px-3 pt-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] backdrop-blur-sm sm:px-4"
-      style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))" }}
+      className="fixed bottom-0 left-0 right-0 z-20 border-t border-gray-200/90 bg-white/95 px-2.5 pt-2 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur-sm sm:px-3"
+      style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom, 0px))" }}
     >
-      <p className="text-center text-xs font-medium text-gray-500">
-        訪問メモを追加
-        <span className="mt-0.5 block text-[11px] font-normal text-gray-400">音声入力はキーボードのマイクから</span>
+      <p className="px-0.5 text-[11px] leading-tight text-gray-500">
+        <span className="font-medium text-gray-600">訪問メモ</span>
+        <span className="text-gray-400"> · 音声はキーボードのマイク</span>
       </p>
       <textarea
-        className="mt-2 w-full rounded-xl border border-gray-200 bg-gray-50/80 px-3 py-2.5 text-sm leading-relaxed text-gray-900 shadow-inner focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/20"
+        className="min-h-[42px] mt-1.5 w-full resize-y rounded-lg border border-gray-200 bg-gray-50/90 px-2.5 py-2 text-sm leading-snug text-gray-900 shadow-inner focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent/25"
         rows={2}
-        placeholder="訪問内容"
+        placeholder="訪問内容（空欄・写真のみも可）"
         value={text}
         onChange={(e) => setText(e.target.value)}
       />
@@ -743,20 +760,20 @@ function MemoComposer({
           setGalleryKey((k) => k + 1);
         }}
       />
-      <div className="mt-2 flex flex-wrap items-center gap-2">
+      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
         <button
           type="button"
-          className="min-h-[40px] rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-800 active:bg-gray-50"
+          className="min-h-[36px] rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-800 active:bg-gray-50"
           onClick={() => cameraInputRef.current?.click()}
         >
           撮影
         </button>
         <button
           type="button"
-          className="min-h-[40px] rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-800 active:bg-gray-50"
+          className="min-h-[36px] rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-800 active:bg-gray-50"
           onClick={() => galleryInputRef.current?.click()}
         >
-          アルバムから
+          アルバム
         </button>
         {photoFiles.length > 0 && (
           <>
@@ -771,10 +788,10 @@ function MemoComposer({
           </>
         )}
       </div>
-      <div className="mt-2 flex min-h-[44px] items-center justify-between gap-2 pb-0.5">
+      <div className="mt-1.5 flex min-h-[40px] items-center justify-between gap-2 pb-1">
         <button
           type="button"
-          className="text-xs font-medium text-accent underline decoration-accent/30 underline-offset-2"
+          className="text-[11px] font-medium text-accent underline decoration-accent/30 underline-offset-2"
           onClick={onSync}
         >
           オフライン同期
@@ -782,7 +799,7 @@ function MemoComposer({
         {canSave && (
           <button
             type="button"
-            className="rounded-xl bg-accent px-5 py-2 text-sm font-semibold text-white shadow-sm active:opacity-90"
+            className="rounded-lg bg-accent px-4 py-1.5 text-sm font-semibold text-white shadow-sm active:opacity-90"
             onClick={() => {
               onSubmit(text, photoFiles.length > 0 ? photoFiles : null);
               setText("");
