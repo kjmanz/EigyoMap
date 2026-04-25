@@ -190,6 +190,9 @@ export function CustomerDetailPage() {
 
   async function addMemo(files: File[] | null, memoText: string) {
     if (!id || !user) return;
+    const t = memoText.trim();
+    const hasFiles = (files?.length ?? 0) > 0;
+    if (t.length === 0 && !hasFiles) return;
     const visitedAt = new Date().toISOString();
     const blobs: OfflineContactPayload["photoBlobs"] = [];
     const fileArr = files ?? [];
@@ -205,7 +208,7 @@ export function CustomerDetailPage() {
         kind: "contact_log",
         payload: {
           customerId: id,
-          memo: memoText,
+          memo: t,
           visitedAt,
           photoBlobs: blobs,
         },
@@ -218,7 +221,7 @@ export function CustomerDetailPage() {
       .insert({
         customer_id: id,
         user_id: user.id,
-        memo: memoText,
+        memo: t,
         visited_at: visitedAt,
         pinned: false,
       })
@@ -679,6 +682,8 @@ function MemoComposer({
     setPhotoFiles((prev) => [...prev, ...Array.from(list)]);
   }
 
+  const canSave = text.trim().length > 0 || photoFiles.length > 0;
+
   return (
     <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 bg-white p-3 shadow-lg">
       <p className="text-xs text-gray-600">メモ追加（音声入力はキーボードのマイクから利用できます）</p>
@@ -744,21 +749,23 @@ function MemoComposer({
           </>
         )}
       </div>
-      <div className="mt-2 flex justify-between gap-2">
+      <div className="mt-2 flex items-center justify-between gap-2">
         <button type="button" className="text-xs text-accent underline" onClick={onSync}>
           オフライン同期
         </button>
-        <button
-          type="button"
-          className="rounded bg-accent px-4 py-2 text-sm text-white"
-          onClick={() => {
-            onSubmit(text, photoFiles.length > 0 ? photoFiles : null);
-            setText("");
-            setPhotoFiles([]);
-          }}
-        >
-          保存
-        </button>
+        {canSave && (
+          <button
+            type="button"
+            className="rounded bg-accent px-4 py-2 text-sm text-white"
+            onClick={() => {
+              onSubmit(text, photoFiles.length > 0 ? photoFiles : null);
+              setText("");
+              setPhotoFiles([]);
+            }}
+          >
+            保存
+          </button>
+        )}
       </div>
     </div>
   );
