@@ -540,7 +540,7 @@ export function MapPage() {
                         <button
                           type="button"
                           className="flex min-w-0 flex-1 items-center gap-3 px-5 py-3.5 text-left active:bg-blue-50"
-                          onClick={() => { setSelectedCustomerId(c.id); setSheetOpen(false); }}
+                          onClick={() => { nav(`/customer/${c.id}`); setSheetOpen(false); }}
                         >
                           <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-gray-800">{c.name}</span>
                           {dist != null && (
