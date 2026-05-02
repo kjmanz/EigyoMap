@@ -32,9 +32,7 @@ export function CustomerDetailPage() {
   const [name, setName] = useState("");
   const [memo, setMemo] = useState("");
   const [busy, setBusy] = useState(false);
-  const [quickDone, setQuickDone] = useState(false);
-  const [inlineOpen, setInlineOpen] = useState(false);
-  const [inlineMemo, setInlineMemo] = useState("");
+  const [manageOpen, setManageOpen] = useState(false);
 
   const loadLabels = useCallback(async () => {
     if (!user) return;
@@ -192,8 +190,6 @@ export function CustomerDetailPage() {
   async function addMemo(files: File[] | null, memoText: string) {
     if (!id || !user) return;
     const t = memoText.trim();
-    const hasFiles = (files?.length ?? 0) > 0;
-    if (t.length === 0 && !hasFiles) return;
     const visitedAt = new Date().toISOString();
     const blobs: OfflineContactPayload["photoBlobs"] = [];
     const fileArr = files ?? [];
@@ -236,33 +232,6 @@ export function CustomerDetailPage() {
     if (fileArr.length > 0) {
       await uploadContactPhotos(user.id, logId, fileArr);
     }
-    await load();
-  }
-
-  async function quickRecord(memoText = "") {
-    if (!id || !user) return;
-    const visitedAt = new Date().toISOString();
-    if (!isOnline()) {
-      await enqueueOffline({
-        id: crypto.randomUUID(),
-        kind: "contact_log",
-        payload: { customerId: id, memo: memoText, visitedAt, photoBlobs: [] },
-      });
-      alert("オフラインのためキューに保存しました。");
-      return;
-    }
-    const { error } = await supabase.from("contact_logs").insert({
-      customer_id: id,
-      user_id: user.id,
-      memo: memoText,
-      visited_at: visitedAt,
-      pinned: false,
-    });
-    if (error) { alert(error.message); return; }
-    setQuickDone(true);
-    setInlineOpen(false);
-    setInlineMemo("");
-    setTimeout(() => setQuickDone(false), 2500);
     await load();
   }
 
@@ -382,11 +351,20 @@ export function CustomerDetailPage() {
       >
         <div className="mx-auto max-w-lg space-y-5 px-3 pb-4 pt-3 sm:px-4 sm:pt-4 lg:max-w-3xl xl:max-w-4xl lg:px-8">
         <div>
-          <h2 className="text-sm font-bold text-gray-500">顧客情報</h2>
-          <div className="mt-2 rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm">
-            {customer.labels.length > 0 && (
-              <div className="mb-4 flex flex-wrap gap-1.5">
-                {customer.labels.map((lb) => (
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-bold text-gray-500">顧客情報</h2>
+            <button
+              type="button"
+              className="rounded-md px-2 py-1 text-xs font-semibold text-accent active:bg-blue-50"
+              onClick={() => setManageOpen((v) => !v)}
+            >
+              {manageOpen ? "閉じる" : "顧客情報を管理"}
+            </button>
+          </div>
+          <div className="mt-2 rounded-xl border border-gray-200/80 bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap gap-1.5">
+              {customer.labels.length > 0 ? (
+                customer.labels.map((lb) => (
                   <span
                     key={lb.id}
                     className="inline-block rounded-full px-2.5 py-1 text-xs font-medium"
@@ -394,208 +372,140 @@ export function CustomerDetailPage() {
                   >
                     {lb.name}
                   </span>
-                ))}
-              </div>
+                ))
+              ) : (
+                <span className="text-xs text-gray-400">ラベルなし</span>
+              )}
+            </div>
+
+            {customer.memo?.trim() ? (
+              <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-[1.65] text-gray-800">
+                {customer.memo}
+              </p>
+            ) : (
+              <p className="mt-3 text-sm text-gray-400">顧客メモは未登録です。</p>
             )}
 
-            {/* クイック訪問記録 */}
-            {!editing && (
-              <div className="mb-4">
-                {!inlineOpen && !quickDone && (
-                  <button
-                    type="button"
-                    className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white shadow-sm active:bg-emerald-700"
-                    onClick={() => setInlineOpen(true)}
-                  >
-                    <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                    </svg>
-                    今すぐ訪問を記録
-                  </button>
-                )}
-                {inlineOpen && (
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3">
-                    <p className="mb-2 text-xs font-medium text-emerald-900/90">訪問メモ（任意・空欄で記録できます）</p>
-                    <textarea
-                      className="w-full rounded-lg border border-emerald-200/80 bg-white px-3 py-2.5 text-sm leading-relaxed text-gray-900 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/30"
-                      rows={3}
-                      placeholder="訪問内容（空欄でもOK）"
-                      value={inlineMemo}
-                      onChange={(e) => setInlineMemo(e.target.value)}
-                      autoFocus
-                    />
-                    <div className="mt-3 flex gap-2">
+            {manageOpen && (
+              <div className="mt-4 border-t border-gray-100 pt-4">
+                {!editing ? (
+                  <div className="flex flex-col gap-3">
+                    <div className="grid gap-2 sm:grid-cols-2">
                       <button
                         type="button"
-                        className="min-h-[44px] flex-1 rounded-lg bg-emerald-600 py-2.5 text-sm font-semibold text-white active:bg-emerald-700"
-                        onClick={() => void quickRecord(inlineMemo)}
+                        className="min-h-[44px] rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-800 active:bg-gray-50"
+                        onClick={() => setEditing(true)}
+                      >
+                        名前・メモを編集
+                      </button>
+                      {isOnline() ? (
+                        <Link
+                          to={`/?relocate=${customer.id}`}
+                          className="flex min-h-[44px] items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-800 active:bg-gray-50"
+                        >
+                          位置を地図で修正
+                        </Link>
+                      ) : (
+                        <p className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500">
+                          位置の修正はオンライン時に行えます。
+                        </p>
+                      )}
+                    </div>
+
+                    {labelMaster.length > 0 && (
+                      <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-3">
+                        <h3 className="text-sm font-semibold text-gray-800">ラベル</h3>
+                        <ul className="mt-2 max-h-40 space-y-0.5 overflow-y-auto">
+                          {labelMaster.map((lb) => (
+                            <li key={lb.id}>
+                              <label className="flex min-h-[38px] cursor-pointer items-center gap-3 rounded-md px-2 py-1 text-sm text-gray-800 active:bg-white">
+                                <input
+                                  type="checkbox"
+                                  className="h-4 w-4 rounded border-gray-300 text-accent focus:ring-accent"
+                                  checked={selectedLabelIds.includes(lb.id)}
+                                  onChange={(e) => {
+                                    setSelectedLabelIds((prev) =>
+                                      e.target.checked
+                                        ? [...prev, lb.id]
+                                        : prev.filter((x) => x !== lb.id)
+                                    );
+                                  }}
+                                  disabled={busy}
+                                />
+                                <span
+                                  className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-white shadow-sm"
+                                  style={{ backgroundColor: lb.color }}
+                                />
+                                {lb.name}
+                              </label>
+                            </li>
+                          ))}
+                        </ul>
+                        <button
+                          type="button"
+                          className="mt-3 min-h-[40px] w-full rounded-lg bg-accent py-2 text-sm font-semibold text-white shadow-sm active:opacity-90 disabled:opacity-50"
+                          disabled={busy}
+                          onClick={() => void saveLabels()}
+                        >
+                          ラベルを保存
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="border-t border-gray-100 pt-3">
+                      <button
+                        type="button"
+                        className="min-h-[40px] rounded-lg px-3 py-2 text-sm font-medium text-red-600 active:bg-red-50"
+                        onClick={() => void deleteCustomer()}
                         disabled={busy}
                       >
-                        記録する
+                        顧客を削除
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    <label className="text-sm font-medium text-gray-800">
+                      お客様名
+                      <input
+                        className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-base text-gray-900 shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                      />
+                    </label>
+                    <label className="block text-sm text-gray-800">
+                      <span className="font-medium text-gray-700">顧客メモ</span>
+                      <textarea
+                        className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm leading-relaxed focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                        rows={4}
+                        value={memo}
+                        onChange={(e) => setMemo(e.target.value)}
+                        placeholder="例: 担当者名、契約番号、注意事項など"
+                      />
+                    </label>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <button
+                        type="button"
+                        className="min-h-[44px] flex-1 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white shadow-sm active:opacity-90"
+                        onClick={() => void saveCustomer()}
+                        disabled={busy}
+                      >
+                        保存
                       </button>
                       <button
                         type="button"
                         className="min-h-[44px] rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 active:bg-gray-50"
-                        onClick={() => { setInlineOpen(false); setInlineMemo(""); }}
+                        onClick={() => {
+                          setEditing(false);
+                          setName(customer.name);
+                          setMemo(customer.memo ?? "");
+                        }}
                       >
                         キャンセル
                       </button>
                     </div>
                   </div>
                 )}
-                {quickDone && (
-                  <div className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 py-3 text-sm font-medium text-emerald-800">
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    記録しました
-                  </div>
-                )}
-              </div>
-            )}
-
-            {!editing ? (
-              <>
-                {customer.memo?.trim() ? (
-                  <div className="rounded-xl border border-l-4 border-l-accent border-gray-200 bg-slate-50/80 p-3 sm:p-4">
-                    <h3 className="text-sm font-semibold text-gray-900">顧客メモ</h3>
-                    <p className="mt-1 text-xs leading-relaxed text-gray-500">
-                      顧客全体の共有メモ。日々の訪問内容は下の「訪問履歴」に記録されます。
-                    </p>
-                    <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-[1.65] text-gray-800">
-                      {customer.memo}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex min-h-0 items-center justify-between gap-2 rounded-lg border border-dashed border-gray-200 bg-white px-2.5 py-1.5">
-                    <p className="min-w-0 text-[11px] leading-snug text-gray-500">
-                      顧客メモ（未登録）· 共有用の補足は「入力」で
-                    </p>
-                    <button
-                      type="button"
-                      className="shrink-0 rounded-md px-2 py-1.5 text-xs font-semibold text-accent active:bg-blue-50"
-                      onClick={() => setEditing(true)}
-                    >
-                      入力
-                    </button>
-                  </div>
-                )}
-                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-3">
-                  <button
-                    type="button"
-                    className="min-h-[44px] flex-1 rounded-xl border-2 border-accent/30 bg-white px-4 py-2.5 text-sm font-semibold text-accent shadow-sm active:bg-blue-50/50"
-                    onClick={() => setEditing(true)}
-                  >
-                    名前・メモを編集
-                  </button>
-                  <button
-                    type="button"
-                    className="min-h-[44px] rounded-xl border border-red-200 bg-red-50/50 px-4 py-2.5 text-sm font-medium text-red-700 active:bg-red-100/50"
-                    onClick={() => void deleteCustomer()}
-                    disabled={busy}
-                  >
-                    顧客を削除
-                  </button>
-                </div>
-                {isOnline() ? (
-                  <Link
-                    to={`/?relocate=${customer.id}`}
-                    className="mt-4 inline-flex min-h-[44px] items-center text-sm font-medium text-accent underline decoration-accent/30 underline-offset-2"
-                  >
-                    位置を地図で修正
-                  </Link>
-                ) : (
-                  <p className="mt-3 text-xs text-gray-500">
-                    位置の修正はオンライン時に地図から行ってください。
-                  </p>
-                )}
-              </>
-            ) : (
-              <div className="flex flex-col gap-4">
-                <label className="text-sm font-medium text-gray-800">
-                  お客様名
-                  <input
-                    className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-base text-gray-900 shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </label>
-                <div className="rounded-xl border border-l-4 border-l-accent border-gray-200 bg-white p-4 shadow-sm">
-                  <h3 className="text-sm font-semibold text-gray-900">顧客メモ</h3>
-                  <p className="mt-1 text-xs leading-relaxed text-gray-500">
-                    訪問内容は下の訪問履歴へ。ここは顧客全体向けのメモです。
-                  </p>
-                  <label className="mt-3 block text-sm text-gray-800">
-                    <span className="text-gray-600">顧客メモ（任意）</span>
-                    <textarea
-                      className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm leading-relaxed focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-                      rows={4}
-                      value={memo}
-                      onChange={(e) => setMemo(e.target.value)}
-                      placeholder="例: 担当者名、契約番号、注意事項など"
-                    />
-                  </label>
-                </div>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <button
-                    type="button"
-                    className="min-h-[44px] flex-1 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white shadow-sm active:opacity-90"
-                    onClick={() => void saveCustomer()}
-                    disabled={busy}
-                  >
-                    保存
-                  </button>
-                  <button
-                    type="button"
-                    className="min-h-[44px] rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 active:bg-gray-50"
-                    onClick={() => {
-                      setEditing(false);
-                      setName(customer.name);
-                      setMemo(customer.memo ?? "");
-                    }}
-                  >
-                    キャンセル
-                  </button>
-                </div>
-              </div>
-            )}
-            {labelMaster.length > 0 && !editing && (
-              <div className="mt-5 border-t border-gray-100 pt-4">
-                <h3 className="text-sm font-semibold text-gray-800">ラベル</h3>
-                <ul className="mt-2 max-h-48 space-y-0.5 overflow-y-auto rounded-lg border border-gray-100 bg-gray-50/50 p-2">
-                  {labelMaster.map((lb) => (
-                    <li key={lb.id}>
-                      <label className="flex min-h-[44px] cursor-pointer items-center gap-3 rounded-lg px-2 py-1 text-sm text-gray-800 active:bg-white">
-                        <input
-                          type="checkbox"
-                          className="h-4 w-4 rounded border-gray-300 text-accent focus:ring-accent"
-                          checked={selectedLabelIds.includes(lb.id)}
-                          onChange={(e) => {
-                            setSelectedLabelIds((prev) =>
-                              e.target.checked
-                                ? [...prev, lb.id]
-                                : prev.filter((x) => x !== lb.id)
-                            );
-                          }}
-                          disabled={busy}
-                        />
-                        <span
-                          className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-white shadow-sm"
-                          style={{ backgroundColor: lb.color }}
-                        />
-                        {lb.name}
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  type="button"
-                  className="mt-3 w-full min-h-[44px] rounded-xl bg-accent py-2.5 text-sm font-semibold text-white shadow-sm active:opacity-90 disabled:opacity-50"
-                  disabled={busy}
-                  onClick={() => void saveLabels()}
-                >
-                  ラベルを保存
-                </button>
               </div>
             )}
           </div>
@@ -685,7 +595,7 @@ export function CustomerDetailPage() {
           </ul>
           {logs.length === 0 && (
             <p className="mt-2 rounded-xl border border-dashed border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-500">
-              まだ訪問の記録がありません。上のボタンか、下のフォームから追加できます。
+              まだ訪問の記録がありません。下のフォームから追加できます。
             </p>
           )}
         </section>
@@ -720,16 +630,14 @@ function MemoComposer({
     setPhotoFiles((prev) => [...prev, ...Array.from(list)]);
   }
 
-  const canSave = text.trim().length > 0 || photoFiles.length > 0;
-
   return (
     <div
       className="fixed bottom-0 left-0 right-0 z-20 border-t border-gray-200/90 bg-white/95 px-2.5 pt-2 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur-sm sm:px-3 lg:left-52"
       style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom, 0px))" }}
     >
       <p className="px-0.5 text-[11px] leading-tight text-gray-500">
-        <span className="font-medium text-gray-600">訪問メモ</span>
-        <span className="text-gray-400"> · 音声はキーボードのマイク</span>
+        <span className="font-medium text-gray-600">訪問を記録</span>
+        <span className="text-gray-400"> · メモなしでも保存できます</span>
       </p>
       <textarea
         className="min-h-[42px] mt-1.5 w-full resize-y rounded-lg border border-gray-200 bg-gray-50/90 px-2.5 py-2 text-sm leading-snug text-gray-900 shadow-inner focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent/25"
@@ -801,19 +709,17 @@ function MemoComposer({
         >
           オフライン同期
         </button>
-        {canSave && (
-          <button
-            type="button"
-            className="rounded-lg bg-accent px-4 py-1.5 text-sm font-semibold text-white shadow-sm active:opacity-90"
-            onClick={() => {
-              onSubmit(text, photoFiles.length > 0 ? photoFiles : null);
-              setText("");
-              setPhotoFiles([]);
-            }}
-          >
-            保存
-          </button>
-        )}
+        <button
+          type="button"
+          className="rounded-lg bg-accent px-4 py-1.5 text-sm font-semibold text-white shadow-sm active:opacity-90"
+          onClick={() => {
+            onSubmit(text, photoFiles.length > 0 ? photoFiles : null);
+            setText("");
+            setPhotoFiles([]);
+          }}
+        >
+          記録する
+        </button>
       </div>
     </div>
   );
