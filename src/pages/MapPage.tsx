@@ -79,7 +79,6 @@ export function MapPage() {
   const [baseLayer, setBaseLayer] = useState<MapBaseLayer>(() => readPreferredMapBaseLayer());
   const [legendOpen, setLegendOpen] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
-  const lastAutoFocusedSearch = useRef("");
 
   useEffect(() => {
     writePreferredMapBaseLayer(baseLayer);
@@ -95,41 +94,35 @@ export function MapPage() {
     [selectedCustomerId, customers]
   );
 
-  const filteredCustomers = useMemo(() => {
+  const searchSuggestions = useMemo(() => {
     const q = normalizeCustomerSearch(search);
-    if (!q) return customers;
-    return customers.filter((c) => normalizeCustomerSearch(c.name).includes(q));
+    const source = q
+      ? customers.filter((c) => normalizeCustomerSearch(c.name).includes(q))
+      : customers;
+    return source.slice(0, 20);
   }, [customers, search]);
-
-  const searchTarget = useMemo(() => {
-    const q = normalizeCustomerSearch(search);
-    if (!q) return null;
-    const exact = customers.find((c) => normalizeCustomerSearch(c.name) === q);
-    if (exact) return exact;
-    return filteredCustomers.length === 1 ? filteredCustomers[0] : null;
-  }, [customers, filteredCustomers, search]);
 
   const mapPins = useMemo(
     () =>
-      filteredCustomers.map((c) => ({
+      customers.map((c) => ({
         id: c.id,
         lat: c.lat,
         lng: c.lng,
         markerColor: pinColorFromLastVisit(c.lastVisitedAt),
       })),
-    [filteredCustomers]
+    [customers]
   );
 
   const visibleCustomers = useMemo(() => {
     if (!mapBounds) return [];
-    const inBounds = filteredCustomers.filter((c) => mapBounds.contains([c.lat, c.lng]));
+    const inBounds = customers.filter((c) => mapBounds.contains([c.lat, c.lng]));
     if (userLat == null || userLng == null) return inBounds;
     return [...inBounds].sort(
       (a, b) =>
         haversineMeters(userLat, userLng, a.lat, a.lng) -
         haversineMeters(userLat, userLng, b.lat, b.lng)
     );
-  }, [filteredCustomers, mapBounds, userLat, userLng]);
+  }, [customers, mapBounds, userLat, userLng]);
 
   const onBoundsChange = useCallback((bounds: L.LatLngBounds) => {
     setMapBounds(bounds);
@@ -192,22 +185,6 @@ export function MapPage() {
     const c = customers.find((x) => x.id === highlightFromSearch);
     if (c) mapRef.current?.setView(c.lat, c.lng, 17);
   }, [highlightFromSearch, customers]);
-
-  const focusCustomerOnMap = useCallback((customer: CustomerMapRow) => {
-    mapRef.current?.setView(customer.lat, customer.lng, 17);
-    setSelectedCustomerId(customer.id);
-    setSheetOpen(false);
-  }, []);
-
-  useEffect(() => {
-    const q = normalizeCustomerSearch(search);
-    if (!q || !searchTarget) return;
-    const exact = normalizeCustomerSearch(searchTarget.name) === q;
-    const key = `${searchTarget.id}:${q}`;
-    if (!exact || lastAutoFocusedSearch.current === key) return;
-    lastAutoFocusedSearch.current = key;
-    focusCustomerOnMap(searchTarget);
-  }, [focusCustomerOnMap, search, searchTarget]);
 
   useEffect(() => {
     if (!relocateTarget) return;
@@ -283,21 +260,8 @@ export function MapPage() {
   }
 
   function submitSearch() {
-    const q = normalizeCustomerSearch(search);
-    if (!q) {
-      setSelectedCustomerId(null);
-      setSheetOpen(true);
-      return;
-    }
-    if (searchTarget) {
-      focusCustomerOnMap(searchTarget);
-    } else if (filteredCustomers.length > 1) {
-      setSelectedCustomerId(null);
-      setSheetOpen(true);
-      showQuickMsg("候補が複数あります。候補から選んでください");
-    } else {
-      showQuickMsg("該当する顧客が見つかりません");
-    }
+    const q = search.trim();
+    nav(q ? `/list?q=${encodeURIComponent(q)}` : "/list");
   }
 
   async function saveCustomer() {
@@ -397,7 +361,7 @@ export function MapPage() {
           listId: "customer-search-list",
           datalist: (
             <datalist id="customer-search-list">
-              {filteredCustomers.slice(0, 20).map((c) => (
+              {searchSuggestions.map((c) => (
                 <option key={c.id} value={c.name} />
               ))}
             </datalist>

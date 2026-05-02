@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { AppHeader } from "../components/AppHeader";
 import { BottomNav } from "../components/BottomNav";
 import { DesktopAppShell } from "../components/DesktopAppShell";
@@ -13,8 +13,10 @@ type Row = CustomerRow & { lastVisit: string | null; labels: LabelSummary[] };
 
 export function CustomerListPage() {
   const { user } = useAuth();
+  const [params] = useSearchParams();
+  const queryFromUrl = params.get("q") ?? "";
   const [rows, setRows] = useState<Row[]>([]);
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(queryFromUrl);
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -48,6 +50,10 @@ export function CustomerListPage() {
   }, [user]);
 
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    setQ(queryFromUrl);
+  }, [queryFromUrl]);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
