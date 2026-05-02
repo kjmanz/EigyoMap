@@ -44,6 +44,10 @@ function formatDistance(m: number): string {
   return m < 1000 ? `${Math.round(m)}m` : `${(m / 1000).toFixed(1)}km`;
 }
 
+function normalizeCustomerSearch(value: string): string {
+  return value.trim().normalize("NFKC").toLowerCase();
+}
+
 export function MapPage() {
   const { user, configured } = useAuth();
   const nav = useNavigate();
@@ -75,6 +79,7 @@ export function MapPage() {
   const [baseLayer, setBaseLayer] = useState<MapBaseLayer>(() => readPreferredMapBaseLayer());
   const [legendOpen, setLegendOpen] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const lastAutoFocusedSearch = useRef("");
 
   useEffect(() => {
     writePreferredMapBaseLayer(baseLayer);
@@ -91,10 +96,18 @@ export function MapPage() {
   );
 
   const filteredCustomers = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = normalizeCustomerSearch(search);
     if (!q) return customers;
-    return customers.filter((c) => c.name.toLowerCase().includes(q));
+    return customers.filter((c) => normalizeCustomerSearch(c.name).includes(q));
   }, [customers, search]);
+
+  const searchTarget = useMemo(() => {
+    const q = normalizeCustomerSearch(search);
+    if (!q) return null;
+    const exact = customers.find((c) => normalizeCustomerSearch(c.name) === q);
+    if (exact) return exact;
+    return filteredCustomers.length === 1 ? filteredCustomers[0] : null;
+  }, [customers, filteredCustomers, search]);
 
   const mapPins = useMemo(
     () =>
@@ -180,6 +193,22 @@ export function MapPage() {
     if (c) mapRef.current?.setView(c.lat, c.lng, 17);
   }, [highlightFromSearch, customers]);
 
+  const focusCustomerOnMap = useCallback((customer: CustomerMapRow) => {
+    mapRef.current?.setView(customer.lat, customer.lng, 17);
+    setSelectedCustomerId(customer.id);
+    setSheetOpen(false);
+  }, []);
+
+  useEffect(() => {
+    const q = normalizeCustomerSearch(search);
+    if (!q || !searchTarget) return;
+    const exact = normalizeCustomerSearch(searchTarget.name) === q;
+    const key = `${searchTarget.id}:${q}`;
+    if (!exact || lastAutoFocusedSearch.current === key) return;
+    lastAutoFocusedSearch.current = key;
+    focusCustomerOnMap(searchTarget);
+  }, [focusCustomerOnMap, search, searchTarget]);
+
   useEffect(() => {
     if (!relocateTarget) return;
     mapRef.current?.setView(relocateTarget.lat, relocateTarget.lng, 17);
@@ -251,6 +280,24 @@ export function MapPage() {
   function dismissMiniCard() {
     setSelectedCustomerId(null);
     setSheetOpen(true);
+  }
+
+  function submitSearch() {
+    const q = normalizeCustomerSearch(search);
+    if (!q) {
+      setSelectedCustomerId(null);
+      setSheetOpen(true);
+      return;
+    }
+    if (searchTarget) {
+      focusCustomerOnMap(searchTarget);
+    } else if (filteredCustomers.length > 1) {
+      setSelectedCustomerId(null);
+      setSheetOpen(true);
+      showQuickMsg("候補が複数あります。候補から選んでください");
+    } else {
+      showQuickMsg("該当する顧客が見つかりません");
+    }
   }
 
   async function saveCustomer() {
@@ -346,6 +393,7 @@ export function MapPage() {
         search={{
           value: search,
           onChange: setSearch,
+          onSubmit: submitSearch,
           listId: "customer-search-list",
           datalist: (
             <datalist id="customer-search-list">

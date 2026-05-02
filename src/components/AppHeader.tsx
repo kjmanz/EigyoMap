@@ -9,6 +9,7 @@ export type AppHeaderActiveNav = "map" | "list" | "today" | "settings";
 export type AppHeaderSearchProps = {
   value: string;
   onChange: (value: string) => void;
+  onSubmit?: () => void;
   placeholder?: string;
   listId?: string;
   datalist?: ReactNode;
@@ -101,7 +102,13 @@ function AppHeaderMain({ title, search, searchTrailing, children }: AppHeaderMai
       </div>
 
       {search && (
-        <div className={`mt-2 items-center gap-2 ${searchOpen ? "flex" : "hidden md:flex"}`}>
+        <form
+          className={`mt-2 items-center gap-2 ${searchOpen ? "flex" : "hidden md:flex"}`}
+          onSubmit={(e) => {
+            e.preventDefault();
+            search.onSubmit?.();
+          }}
+        >
           <input
             ref={searchInputRef}
             type="search"
@@ -123,7 +130,7 @@ function AppHeaderMain({ title, search, searchTrailing, children }: AppHeaderMai
               閉じる
             </button>
           )}
-        </div>
+        </form>
       )}
 
       {children}
