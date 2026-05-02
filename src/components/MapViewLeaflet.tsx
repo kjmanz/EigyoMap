@@ -13,12 +13,11 @@ export type MapCustomerPin = {
 };
 
 const DEFAULT_CENTER: L.LatLngTuple = [34.8161, 135.5686];
-/** 国土地理院 標準地図（OSM公式タイルはモバイルで不安定になりがちなため採用） */
-const GSI_STD_TILE = "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png";
+const OSM_TILE = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const GSI_PHOTO_TILE = "https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg";
 
-/** 地理院ラスタ標準／写真の詳細側ネイティブ最大ズーム */
-const STD_TILE_MAX_NATIVE = 18;
+/** OSM と地理院写真のネイティブ最大ズーム */
+const OSM_TILE_MAX_NATIVE = 19;
 const PHOTO_TILE_MAX_NATIVE = 18;
 /** ユーザーがピンチ等でさらに寄れる最大ズーム（タイルは拡大） */
 const MAP_MAX_ZOOM = 22;
@@ -28,10 +27,10 @@ const BASE_LAYER_CONFIG: Record<
   { url: string; attribution: string; maxNativeZoom: number }
 > = {
   default: {
-    url: GSI_STD_TILE,
+    url: OSM_TILE,
     attribution:
-      '出典: <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noreferrer">国土地理院</a>',
-    maxNativeZoom: STD_TILE_MAX_NATIVE,
+      '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
+    maxNativeZoom: OSM_TILE_MAX_NATIVE,
   },
   photo: {
     url: GSI_PHOTO_TILE,

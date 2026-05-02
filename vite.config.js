@@ -67,6 +67,17 @@ export default defineConfig(({ mode }) => {
                                 },
                             },
                         },
+                        {
+                            urlPattern: /^https:\/\/tile\.openstreetmap\.org\/\d+\/\d+\/\d+\.png$/,
+                            handler: "StaleWhileRevalidate",
+                            options: {
+                                cacheName: "osm-tiles",
+                                expiration: {
+                                    maxEntries: 350,
+                                    maxAgeSeconds: 60 * 60 * 24 * 7,
+                                },
+                            },
+                        },
                     ],
                 },
             }),
