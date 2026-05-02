@@ -13,11 +13,12 @@ export type MapCustomerPin = {
 };
 
 const DEFAULT_CENTER: L.LatLngTuple = [34.8161, 135.5686];
-const OSM_TILE = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+/** 国土地理院 標準地図（OSM公式タイルはモバイルで不安定になりがちなため採用） */
+const GSI_STD_TILE = "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png";
 const GSI_PHOTO_TILE = "https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg";
 
-/** OSM タイルのネイティブ最大ズーム */
-const TILE_MAX_NATIVE = 19;
+/** 地理院ラスタ標準／写真の詳細側ネイティブ最大ズーム */
+const STD_TILE_MAX_NATIVE = 18;
 const PHOTO_TILE_MAX_NATIVE = 18;
 /** ユーザーがピンチ等でさらに寄れる最大ズーム（タイルは拡大） */
 const MAP_MAX_ZOOM = 22;
@@ -27,10 +28,10 @@ const BASE_LAYER_CONFIG: Record<
   { url: string; attribution: string; maxNativeZoom: number }
 > = {
   default: {
-    url: OSM_TILE,
+    url: GSI_STD_TILE,
     attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
-    maxNativeZoom: TILE_MAX_NATIVE,
+      '出典: <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noreferrer">国土地理院</a>',
+    maxNativeZoom: STD_TILE_MAX_NATIVE,
   },
   photo: {
     url: GSI_PHOTO_TILE,
@@ -40,13 +41,51 @@ const BASE_LAYER_CONFIG: Record<
   },
 };
 
+/** 1×1 透明PNG（読み込み失敗時の破綻画像を避ける） */
+const TRANSPARENT_TILE =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+
+function bindTileReloadRetry(layer: L.TileLayer, maxRetries = 2): void {
+  const attempts = new Map<string, number>();
+  const coordsKey = (c: L.Coords) => `${c.z}:${c.x}:${c.y}`;
+  layer.on("tileload", (ev: L.TileEvent) => attempts.delete(coordsKey(ev.coords)));
+  layer.on("tileerror", (ev: L.TileErrorEvent) => {
+    const key = coordsKey(ev.coords);
+    const n = attempts.get(key) ?? 0;
+    if (n >= maxRetries) {
+      attempts.delete(key);
+      return;
+    }
+    attempts.set(key, n + 1);
+    const img = ev.tile as HTMLImageElement;
+    const prevOnError = img.onerror;
+    img.onerror = null;
+    window.setTimeout(() => {
+      try {
+        const baseUrl = layer.getTileUrl(ev.coords);
+        const sep = baseUrl.includes("?") ? "&" : "?";
+        img.src = `${baseUrl}${sep}_retry=${n + 1}&_=${Date.now()}`;
+      } finally {
+        img.onerror = prevOnError ?? null;
+      }
+    }, 400 * (n + 1));
+  });
+}
+
 function createBaseLayer(baseLayer: MapBaseLayer): L.TileLayer {
   const config = BASE_LAYER_CONFIG[baseLayer];
-  return L.tileLayer(config.url, {
+  const layer = L.tileLayer(config.url, {
     attribution: config.attribution,
     maxZoom: MAP_MAX_ZOOM,
     maxNativeZoom: config.maxNativeZoom,
+    crossOrigin: true,
+    /** パン・ズーム中の大量リクエストを抑えモバイル回線向き */
+    updateWhenIdle: true,
+    /** 読み込めないマスだけ欠けたように見える（アイコンは出さない） */
+    errorTileUrl: TRANSPARENT_TILE,
   });
+  bindTileReloadRetry(layer);
+  return layer;
 }
 
 export type MapViewHandle = {

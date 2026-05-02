@@ -58,12 +58,12 @@ export default defineConfig(({ mode }) => {
                     runtimeCaching: [
                         {
                             urlPattern: /^https:\/\/cyberjapandata\.gsi\.go\.jp\/xyz\/.+\/\d+\/\d+\/\d+\.(png|jpg)$/,
-                            handler: "CacheFirst",
+                            handler: "StaleWhileRevalidate",
                             options: {
                                 cacheName: "gsi-tiles",
                                 expiration: {
-                                    maxEntries: 200,
-                                    maxAgeSeconds: 60 * 60 * 24 * 7,
+                                    maxEntries: 500,
+                                    maxAgeSeconds: 60 * 60 * 24 * 14,
                                 },
                             },
                         },

@@ -25,6 +25,6 @@ export function writePreferredMapBaseLayer(baseLayer: MapBaseLayer): void {
   }
 }
 
-export function getMapAttributionText(baseLayer: MapBaseLayer): string {
-  return baseLayer === "photo" ? "出典: 国土地理院" : "© OpenStreetMap contributors";
+export function getMapAttributionText(_baseLayer: MapBaseLayer): string {
+  return "出典: 国土地理院";
 }
