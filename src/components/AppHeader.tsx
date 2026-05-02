@@ -45,7 +45,7 @@ function SearchIcon({ className }: { className?: string }) {
 export function AppHeader(props: AppHeaderProps) {
   if (props.variant === "back") {
     return (
-      <header className="sticky top-0 z-10 shrink-0 border-b border-gray-200 bg-white px-2 py-2 sm:px-3">
+      <header className="sticky top-0 z-10 shrink-0 border-b border-gray-200 bg-white px-2 py-2 sm:px-3 lg:px-5">
         <div className="flex items-center gap-1.5 sm:gap-2">
           <button type="button" className={APP_HEADER_NAV_CLASS} onClick={props.onBack}>
             戻る
@@ -78,7 +78,7 @@ function AppHeaderMain({ title, search, searchTrailing, children }: AppHeaderMai
   }, [searchOpen, search]);
 
   return (
-    <header className="sticky top-0 z-10 shrink-0 border-b border-gray-200 bg-white px-3 py-2">
+    <header className="sticky top-0 z-10 shrink-0 border-b border-gray-200 bg-white px-3 py-2 lg:px-6">
       <div className="flex items-center gap-2">
         <h1 className="min-w-0 flex-1 text-base font-semibold text-gray-800 sm:text-lg">
           {title}

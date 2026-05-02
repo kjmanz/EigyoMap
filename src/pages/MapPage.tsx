@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import type L from "leaflet";
 import { AppHeader } from "../components/AppHeader";
 import { BottomNav } from "../components/BottomNav";
+import { DesktopAppShell } from "../components/DesktopAppShell";
 import type { MapViewHandle } from "../components/MapViewLeaflet";
 import { labelChipTextColor, pinColorFromLastVisit, toCustomerMapRow } from "../lib/customerLabels";
 import {
@@ -331,7 +332,7 @@ export function MapPage() {
   }
 
   return (
-    <div className="flex h-[100dvh] flex-col bg-white">
+    <DesktopAppShell sidebarActive="map" fullViewportHeight>
       {relocateTarget && (
         <div className="relative z-20 flex shrink-0 items-center justify-between gap-2 border-b border-blue-200 bg-blue-50 px-2 py-2 text-xs text-blue-900">
           <span className="min-w-0">「{relocateTarget.name}」の位置を修正：地図をタップして新しい地点を指定してください。</span>
@@ -427,7 +428,7 @@ export function MapPage() {
           <button
             type="button"
             onClick={() => mapRef.current?.goToCurrentLocation()}
-            className="pointer-events-auto absolute bottom-[calc(55%+16px)] right-3 z-[900] flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-black/10 active:bg-gray-50"
+            className="pointer-events-auto absolute bottom-[calc(55%+16px)] right-3 z-[900] flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-black/10 active:bg-gray-50 lg:bottom-8 lg:left-8 lg:right-auto lg:h-11 lg:w-11"
             title="現在地へ"
           >
             <svg className="h-5 w-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -452,7 +453,7 @@ export function MapPage() {
 
         {/* 顧客ミニカード（マーカータップ時） */}
         {selectedCustomer && (
-          <div className="absolute bottom-0 left-0 right-0 z-[1050] rounded-t-2xl bg-white shadow-2xl">
+          <div className="absolute bottom-0 left-0 right-0 z-[1050] rounded-t-2xl bg-white shadow-2xl lg:bottom-6 lg:left-auto lg:right-6 lg:max-w-md lg:rounded-2xl lg:border lg:border-gray-200 lg:shadow-2xl">
             <div className="px-4 pb-4 pt-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
@@ -511,8 +512,8 @@ export function MapPage() {
         {/* ボトムシート */}
         {!selectedCustomer && (
           <div
-            className={`absolute bottom-0 left-0 right-0 z-[2200] flex min-h-0 flex-col rounded-t-3xl bg-white shadow-[0_-6px_24px_rgba(0,0,0,0.18)] transition-[max-height] duration-300 ease-in-out ${
-              sheetOpen ? "max-h-[55dvh]" : "max-h-[5.75rem] overflow-hidden"
+            className={`absolute bottom-0 left-0 right-0 z-[2200] flex min-h-0 flex-col rounded-t-3xl bg-white shadow-[0_-6px_24px_rgba(0,0,0,0.18)] transition-[max-height] duration-300 ease-in-out lg:bottom-6 lg:left-auto lg:right-6 lg:w-[min(400px,calc(100vw-3rem))] lg:rounded-2xl lg:border lg:border-gray-200 lg:shadow-xl ${
+              sheetOpen ? "max-h-[55dvh] lg:max-h-[min(520px,calc(100vh-8rem))]" : "max-h-[5.75rem] overflow-hidden"
             }`}
             style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
             onClick={(e) => e.stopPropagation()}
@@ -604,8 +605,11 @@ export function MapPage() {
         </div>
       )}
 
-      {/* BottomNav のスペーサー */}
-      <div className="h-14 shrink-0" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }} />
+      {/* BottomNav のスペーサー（モバイルのみ） */}
+      <div
+        className="h-14 shrink-0 lg:hidden"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      />
 
       {registerOpen && (
         <div className="fixed inset-0 z-[3000] flex items-end justify-center bg-black/40 sm:items-center">
@@ -669,6 +673,6 @@ export function MapPage() {
       )}
 
       <BottomNav active="map" />
-    </div>
+    </DesktopAppShell>
   );
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { AppHeader } from "../components/AppHeader";
+import { DesktopAppShell } from "../components/DesktopAppShell";
 import { supabase } from "../lib/supabase";
 import { canRestore, daysUntilPermanentDeletion } from "../lib/softDelete";
 import type { ContactLogRow, CustomerRow } from "../lib/types";
@@ -82,9 +83,10 @@ export function TrashPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <DesktopAppShell sidebarActive="settings">
+      <div className="min-h-screen flex-1 bg-white lg:overflow-auto lg:bg-gray-50/40">
       <AppHeader variant="main" title="ゴミ箱" activeNav={null} />
-      <div className="p-4">
+      <div className="p-4 lg:mx-auto lg:max-w-3xl lg:pb-12 lg:pt-2">
       <p className="mb-4 text-xs text-gray-600">
         削除した顧客・メモは 30 日間ここから復元できます。期限後は自動で完全削除されます（写真も含む）。
       </p>
@@ -173,6 +175,7 @@ export function TrashPage() {
         </>
       )}
       </div>
-    </div>
+      </div>
+    </DesktopAppShell>
   );
 }

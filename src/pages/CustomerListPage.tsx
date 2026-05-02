@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AppHeader } from "../components/AppHeader";
 import { BottomNav } from "../components/BottomNav";
+import { DesktopAppShell } from "../components/DesktopAppShell";
 import { labelChipTextColor, labelsFromCustomerJoin } from "../lib/customerLabels";
 import { relativeDate } from "../lib/relativeDate";
 import { supabase } from "../lib/supabase";
@@ -55,17 +56,21 @@ export function CustomerListPage() {
   }, [rows, q]);
 
   return (
-    <div className="min-h-screen bg-white pb-16">
-      <AppHeader
-        variant="main"
-        title="顧客一覧"
-        activeNav="list"
-        search={{ value: q, onChange: setQ, placeholder: "名前で検索" }}
-      />
-      <ul className="divide-y divide-gray-100">
-        {filtered.map((c) => (
-          <li key={c.id}>
-            <Link to={`/customer/${c.id}`} className="block px-4 py-3 active:bg-gray-50">
+    <DesktopAppShell sidebarActive="list">
+      <div className="flex min-h-screen flex-col bg-white pb-16 lg:min-h-0 lg:flex-1 lg:overflow-auto lg:bg-gray-50/40 lg:pb-0">
+        <AppHeader
+          variant="main"
+          title="顧客一覧"
+          activeNav="list"
+          search={{ value: q, onChange: setQ, placeholder: "名前で検索" }}
+        />
+        <ul className="divide-y divide-gray-100 bg-white lg:mx-8 lg:mb-10 lg:mt-6 lg:max-w-5xl xl:mx-auto xl:rounded-xl xl:border xl:border-gray-200 xl:shadow-sm">
+          {filtered.map((c) => (
+            <li key={c.id}>
+              <Link
+                to={`/customer/${c.id}`}
+                className="block px-4 py-3 active:bg-gray-50 lg:px-6 lg:py-3.5 lg:transition-colors lg:hover:bg-slate-50"
+              >
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium text-gray-900">{c.name}</span>
                 <span className={`shrink-0 text-xs font-medium ${
@@ -101,6 +106,7 @@ export function CustomerListPage() {
         <p className="p-4 text-center text-sm text-gray-500">該当する顧客がありません。</p>
       )}
       <BottomNav active="list" />
-    </div>
+      </div>
+    </DesktopAppShell>
   );
 }

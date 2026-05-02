@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AppHeader } from "../components/AppHeader";
 import { BottomNav } from "../components/BottomNav";
+import { DesktopAppShell } from "../components/DesktopAppShell";
 import { supabase } from "../lib/supabase";
 import type { LabelRow } from "../lib/types";
 import { useAuth } from "../contexts/AuthContext";
@@ -128,15 +129,16 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white pb-16">
+    <DesktopAppShell sidebarActive="settings">
+      <div className="flex min-h-screen flex-col bg-white pb-16 lg:min-h-0 lg:flex-1 lg:overflow-auto lg:bg-gray-50/40 lg:pb-0">
       <AppHeader variant="main" title="設定" activeNav="settings" />
-      <div className="p-4">
+      <div className="p-4 lg:mx-auto lg:max-w-2xl lg:pb-12 lg:pt-2">
       <section className="mb-8">
         <h2 className="text-sm font-medium text-gray-700">アカウント</h2>
         <p className="mt-1 text-xs text-gray-500">{user?.email ?? "—"}</p>
         <button
           type="button"
-          className="mt-3 rounded border border-gray-300 px-4 py-2 text-sm"
+          className="mt-3 rounded border border-gray-300 px-4 py-2 text-sm lg:px-5 lg:hover:bg-gray-50"
           onClick={() => void signOut()}
         >
           ログアウト
@@ -150,7 +152,7 @@ export function SettingsPage() {
         </p>
         <Link
           to="/trash"
-          className="mt-3 inline-block rounded border border-gray-300 px-4 py-2 text-sm text-gray-800"
+          className="mt-3 inline-block rounded border border-gray-300 px-4 py-2 text-sm text-gray-800 lg:hover:bg-gray-50"
         >
           ゴミ箱を開く
         </Link>
@@ -229,7 +231,8 @@ export function SettingsPage() {
       </p>
       </div>
       <BottomNav active="settings" />
-    </div>
+      </div>
+    </DesktopAppShell>
   );
 }
 

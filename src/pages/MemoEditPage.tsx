@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AppHeader } from "../components/AppHeader";
+import { DesktopAppShell } from "../components/DesktopAppShell";
 import { isoToDatetimeLocal } from "../lib/datetime";
 import { deleteStoragePath, getSignedPhotoUrl, uploadContactPhotos } from "../lib/photos";
 import { canRestore, daysUntilPermanentDeletion } from "../lib/softDelete";
@@ -119,12 +120,14 @@ export function MemoEditPage() {
 
   if (!log) {
     return (
-      <div className="p-4">
-        <p className="text-gray-600">読み込み中…</p>
-        <Link to={`/customer/${id}`} className="mt-2 inline-block text-accent underline">
-          戻る
-        </Link>
-      </div>
+      <DesktopAppShell sidebarActive={null}>
+        <div className="flex flex-1 flex-col p-4">
+          <p className="text-gray-600">読み込み中…</p>
+          <Link to={`/customer/${id}`} className="mt-2 inline-block text-accent underline">
+            戻る
+          </Link>
+        </div>
+      </DesktopAppShell>
     );
   }
 
@@ -132,9 +135,10 @@ export function MemoEditPage() {
     const ok = canRestore(log.deleted_at);
     const days = daysUntilPermanentDeletion(log.deleted_at);
     return (
-      <div className="min-h-screen bg-white">
+      <DesktopAppShell sidebarActive={null}>
+      <div className="flex min-h-screen flex-1 flex-col bg-white lg:overflow-auto">
         <AppHeader variant="back" title="削除済みメモ" onBack={() => nav(-1)} />
-        <div className="p-4">
+        <div className="p-4 lg:mx-auto lg:max-w-2xl lg:pb-12">
         <p className="text-sm text-amber-900">このメモは削除済みです。</p>
         <p className="mt-2 text-xs text-gray-600">
           削除: {new Date(log.deleted_at).toLocaleString("ja-JP")}
@@ -162,13 +166,15 @@ export function MemoEditPage() {
         </div>
         </div>
       </div>
+      </DesktopAppShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <DesktopAppShell sidebarActive={null}>
+    <div className="min-h-screen flex-1 bg-white lg:overflow-auto">
       <AppHeader variant="back" title="メモを編集" onBack={() => nav(-1)} />
-      <div className="p-4 pb-24">
+      <div className="p-4 pb-24 lg:mx-auto lg:max-w-2xl lg:pb-12">
       <label className="block text-sm text-gray-700">
         訪問日時
         <input
@@ -238,5 +244,6 @@ export function MemoEditPage() {
       </div>
       </div>
     </div>
+    </DesktopAppShell>
   );
 }

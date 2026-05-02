@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { AppHeader } from "../components/AppHeader";
 import { PinnedPinIcon } from "../components/PinnedPinIcon";
 import { BottomNav } from "../components/BottomNav";
+import { DesktopAppShell } from "../components/DesktopAppShell";
 import { getLocalDayRangeISO } from "../lib/todayRange";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../contexts/AuthContext";
@@ -36,7 +37,7 @@ function TodayLogListItem({ log, isExpanded, onToggle }: LogListItemProps) {
     <li className="bg-white">
       <button
         type="button"
-        className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-gray-50"
+        className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-gray-50 lg:px-6 lg:hover:bg-gray-50/90"
         onClick={onToggle}
       >
         <div className="min-w-0 flex-1">
@@ -163,14 +164,15 @@ export function TodaySummaryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white pb-16">
+    <DesktopAppShell sidebarActive="today">
+      <div className="flex min-h-screen flex-col bg-white pb-16 lg:min-h-0 lg:flex-1 lg:overflow-auto lg:bg-gray-50/40 lg:pb-0">
       <AppHeader variant="main" title="今日" activeNav="today">
         {/* 日付ナビゲーション */}
         <div className="mt-2 flex items-center justify-between gap-2 border-t border-gray-100 pt-2">
           <button
             type="button"
             onClick={goPrev}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-600 active:bg-gray-100"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-600 active:bg-gray-100 lg:h-10 lg:w-10 lg:hover:bg-white"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -190,7 +192,7 @@ export function TodaySummaryPage() {
             type="button"
             onClick={goNext}
             disabled={isToday}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-600 active:bg-gray-100 disabled:opacity-30"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-600 active:bg-gray-100 disabled:opacity-30 lg:h-10 lg:w-10 lg:hover:bg-white"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -215,9 +217,9 @@ export function TodaySummaryPage() {
           )}
         </div>
       ) : (
-        <div className="space-y-6 pb-2">
-          <section>
-            <h2 className="bg-gray-50 px-4 py-2.5 text-sm font-semibold text-gray-800">
+        <div className="space-y-6 px-4 pb-2 lg:mx-auto lg:max-w-3xl xl:max-w-4xl lg:px-8 lg:pb-10">
+          <section className="lg:overflow-hidden lg:rounded-xl lg:border lg:border-gray-200 lg:bg-white lg:shadow-sm">
+            <h2 className="bg-gray-50 px-4 py-2.5 text-sm font-semibold text-gray-800 lg:bg-slate-50/90">
               訪問一覧
               <span className="ml-2 text-xs font-normal text-gray-500">（{visitRows.length} 名・同顧客は最新の訪問のみ）</span>
             </h2>
@@ -237,8 +239,8 @@ export function TodaySummaryPage() {
             )}
           </section>
 
-          <section>
-            <h2 className="bg-gray-50 px-4 py-2.5 text-sm font-semibold text-gray-800">
+          <section className="lg:overflow-hidden lg:rounded-xl lg:border lg:border-gray-200 lg:bg-white lg:shadow-sm">
+            <h2 className="bg-gray-50 px-4 py-2.5 text-sm font-semibold text-gray-800 lg:bg-slate-50/90">
               メモ一覧
               <span className="ml-2 text-xs font-normal text-gray-500">（{memoRows.length} 件・メモ本文あり）</span>
             </h2>
@@ -263,6 +265,7 @@ export function TodaySummaryPage() {
       )}
 
       <BottomNav active="today" />
-    </div>
+      </div>
+    </DesktopAppShell>
   );
 }

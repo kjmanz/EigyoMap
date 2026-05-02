@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AppHeader, APP_HEADER_NAV_CLASS } from "../components/AppHeader";
+import { DesktopAppShell } from "../components/DesktopAppShell";
 import { PinnedPinIcon } from "../components/PinnedPinIcon";
 import { labelChipTextColor, toCustomerMapRow } from "../lib/customerLabels";
 import { canRestore, daysUntilPermanentDeletion } from "../lib/softDelete";
@@ -296,14 +297,16 @@ export function CustomerDetailPage() {
   if (!id) return null;
   if (!customer) {
     return (
-      <div className="p-4 text-gray-600">
-        読み込み中…
-        <div className="mt-4">
-          <Link to="/" className="text-accent underline">
-            地図へ
-          </Link>
+      <DesktopAppShell sidebarActive={null}>
+        <div className="flex flex-1 flex-col p-4 text-gray-600">
+          読み込み中…
+          <div className="mt-4">
+            <Link to="/" className="text-accent underline">
+              地図へ
+            </Link>
+          </div>
         </div>
-      </div>
+      </DesktopAppShell>
     );
   }
 
@@ -311,7 +314,8 @@ export function CustomerDetailPage() {
     const ok = canRestore(customer.deleted_at);
     const days = daysUntilPermanentDeletion(customer.deleted_at);
     return (
-      <div className="min-h-screen bg-white pb-24">
+      <DesktopAppShell sidebarActive={null}>
+        <div className="flex min-h-screen flex-1 flex-col bg-white pb-24 lg:min-h-0 lg:overflow-auto">
         <AppHeader
           variant="back"
           title={customer.name}
@@ -322,7 +326,7 @@ export function CustomerDetailPage() {
             </Link>
           }
         />
-        <div className="p-4">
+        <div className="p-4 lg:mx-auto lg:max-w-2xl">
           <p className="text-sm text-amber-900">この顧客は削除済みです。</p>
           <p className="mt-2 text-xs text-gray-600">
             削除日時: {new Date(customer.deleted_at).toLocaleString("ja-JP")}
@@ -348,12 +352,14 @@ export function CustomerDetailPage() {
             </Link>
           </div>
         </div>
-      </div>
+        </div>
+      </DesktopAppShell>
     );
   }
 
   return (
-    <div className="flex h-[100dvh] max-h-[100dvh] min-h-0 w-full flex-col overflow-hidden bg-gray-50">
+    <DesktopAppShell sidebarActive={null} fullViewportHeight>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-gray-50">
       <div className="shrink-0">
         <AppHeader
           variant="back"
@@ -374,7 +380,7 @@ export function CustomerDetailPage() {
           paddingBottom: "max(17rem, calc(env(safe-area-inset-bottom, 0px) + 12rem))",
         }}
       >
-        <div className="mx-auto max-w-lg space-y-5 px-3 pb-4 pt-3 sm:px-4 sm:pt-4">
+        <div className="mx-auto max-w-lg space-y-5 px-3 pb-4 pt-3 sm:px-4 sm:pt-4 lg:max-w-3xl xl:max-w-4xl lg:px-8">
         <div>
           <h2 className="text-sm font-bold text-gray-500">顧客情報</h2>
           <div className="mt-2 rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm">
@@ -691,6 +697,7 @@ export function CustomerDetailPage() {
         onSync={() => void flushOfflineQueue().then(() => load())}
       />
     </div>
+    </DesktopAppShell>
   );
 }
 
@@ -717,7 +724,7 @@ function MemoComposer({
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-20 border-t border-gray-200/90 bg-white/95 px-2.5 pt-2 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur-sm sm:px-3"
+      className="fixed bottom-0 left-0 right-0 z-20 border-t border-gray-200/90 bg-white/95 px-2.5 pt-2 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur-sm sm:px-3 lg:left-52"
       style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom, 0px))" }}
     >
       <p className="px-0.5 text-[11px] leading-tight text-gray-500">
