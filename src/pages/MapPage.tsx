@@ -587,7 +587,6 @@ export function MapPage() {
                   {visibleCustomers.map((c) => {
                     const dist = userLat != null && userLng != null
                       ? haversineMeters(userLat, userLng, c.lat, c.lng) : null;
-                    const visitLabel = relativeDate(c.lastVisitedAt);
                     const isRecording = recordingCustomerId === c.id;
                     const isJustRecorded = recentlyRecordedCustomerId === c.id;
                     return (
@@ -606,20 +605,7 @@ export function MapPage() {
                             nav(`/customer/${c.id}`);
                           }}
                         >
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-[15px] font-medium text-gray-800">{c.name}</span>
-                            <span
-                              className={`mt-0.5 block truncate text-xs font-medium ${
-                                isRecording || isJustRecorded
-                                  ? "text-green-700"
-                                  : c.lastVisitedAt
-                                    ? "text-gray-500"
-                                    : "text-gray-400"
-                              }`}
-                            >
-                              {isRecording ? "記録中..." : isJustRecorded ? "訪問済み・今日" : visitLabel}
-                            </span>
-                          </span>
+                          <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-gray-800">{c.name}</span>
                           {dist != null && (
                             <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">{formatDistance(dist)}</span>
                           )}
@@ -629,11 +615,11 @@ export function MapPage() {
                         </button>
                         <button
                           type="button"
-                          className={`mr-3 flex h-9 min-w-9 shrink-0 items-center justify-center rounded-full px-2 text-xs font-bold transition-all duration-200 [touch-action:manipulation] ${
+                          className={`relative mr-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200 [touch-action:manipulation] ${
                             isRecording
-                              ? "bg-green-600 text-white shadow-sm ring-2 ring-green-200"
+                              ? "scale-105 bg-green-600 text-white shadow-sm ring-4 ring-green-200"
                               : isJustRecorded
-                              ? "bg-green-600 text-white shadow-sm ring-2 ring-green-200"
+                              ? "scale-110 bg-green-600 text-white shadow-md ring-4 ring-green-200"
                               : "bg-green-100 text-green-700 active:bg-green-200"
                           } ${isRecording ? "cursor-wait" : ""}`}
                           title={isRecording ? "記録中" : isJustRecorded ? "訪問済み" : "訪問を記録"}
@@ -644,21 +630,18 @@ export function MapPage() {
                             void quickRecord(c.id);
                           }}
                         >
+                          {(isRecording || isJustRecorded) && (
+                            <span className="absolute inset-0 rounded-full bg-green-400 opacity-30 animate-ping" />
+                          )}
                           {isRecording ? (
-                            <>
-                              <svg className="h-4 w-4 shrink-0 animate-spin" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-30" cx="12" cy="12" r="9" stroke="currentColor" strokeWidth={3} />
-                                <path className="opacity-90" fill="currentColor" d="M21 12a9 9 0 0 0-9-9v3a6 6 0 0 1 6 6h3z" />
-                              </svg>
-                              <span className="ml-1">中</span>
-                            </>
+                            <svg className="relative h-4 w-4 shrink-0 animate-spin" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-30" cx="12" cy="12" r="9" stroke="currentColor" strokeWidth={3} />
+                              <path className="opacity-90" fill="currentColor" d="M21 12a9 9 0 0 0-9-9v3a6 6 0 0 1 6 6h3z" />
+                            </svg>
                           ) : (
-                            <>
-                              <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                              </svg>
-                              {isJustRecorded && <span className="ml-1">済</span>}
-                            </>
+                            <svg className="relative h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
                           )}
                         </button>
                       </li>
