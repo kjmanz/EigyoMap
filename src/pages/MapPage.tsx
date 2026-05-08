@@ -70,6 +70,9 @@ export function MapPage() {
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [quickMsg, setQuickMsg] = useState<string | null>(null);
   const quickMsgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [recordingCustomerId, setRecordingCustomerId] = useState<string | null>(null);
+  const [recentlyRecordedCustomerId, setRecentlyRecordedCustomerId] = useState<string | null>(null);
+  const recentRecordTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
   const [userLat, setUserLat] = useState<number | null>(null);
   const [userLng, setUserLng] = useState<number | null>(null);
@@ -83,6 +86,13 @@ export function MapPage() {
   useEffect(() => {
     writePreferredMapBaseLayer(baseLayer);
   }, [baseLayer]);
+
+  useEffect(() => {
+    return () => {
+      if (quickMsgTimer.current) clearTimeout(quickMsgTimer.current);
+      if (recentRecordTimer.current) clearTimeout(recentRecordTimer.current);
+    };
+  }, []);
 
   const relocateTarget = useMemo(() => {
     if (!relocateId) return null;
@@ -320,20 +330,35 @@ export function MapPage() {
   }
 
   async function quickRecord(customerId: string) {
-    if (!user) return;
+    if (!user || recordingCustomerId === customerId) return;
+    setRecordingCustomerId(customerId);
     const visitedAt = new Date().toISOString();
     const payload: OfflineContactPayload = { customerId, memo: "", visitedAt, photoBlobs: [] };
-    if (!isOnline()) {
-      await enqueueOffline({ id: crypto.randomUUID(), kind: "contact_log", payload });
-      showQuickMsg("オフラインのためキューに保存しました");
-      return;
+    try {
+      if (!isOnline()) {
+        await enqueueOffline({ id: crypto.randomUUID(), kind: "contact_log", payload });
+        markQuickRecorded(customerId, visitedAt);
+        showQuickMsg("訪問を記録しました（同期待ち）");
+        return;
+      }
+      const { error } = await supabase.from("contact_logs").insert({
+        customer_id: customerId, user_id: user.id, memo: "", visited_at: visitedAt, pinned: false,
+      });
+      if (error) { showQuickMsg(`エラー: ${error.message}`); return; }
+      markQuickRecorded(customerId, visitedAt);
+      showQuickMsg("訪問を記録しました");
+    } finally {
+      setRecordingCustomerId((current) => (current === customerId ? null : current));
     }
-    const { error } = await supabase.from("contact_logs").insert({
-      customer_id: customerId, user_id: user.id, memo: "", visited_at: visitedAt, pinned: false,
-    });
-    if (error) { showQuickMsg(`エラー: ${error.message}`); return; }
+  }
+
+  function markQuickRecorded(customerId: string, visitedAt: string) {
     setCustomers((prev) => prev.map((c) => (c.id === customerId ? { ...c, lastVisitedAt: visitedAt } : c)));
-    showQuickMsg("訪問を記録しました");
+    setRecentlyRecordedCustomerId(customerId);
+    if (recentRecordTimer.current) clearTimeout(recentRecordTimer.current);
+    recentRecordTimer.current = setTimeout(() => {
+      setRecentlyRecordedCustomerId((current) => (current === customerId ? null : current));
+    }, 3500);
   }
 
   function showQuickMsg(msg: string) {
@@ -562,8 +587,16 @@ export function MapPage() {
                   {visibleCustomers.map((c) => {
                     const dist = userLat != null && userLng != null
                       ? haversineMeters(userLat, userLng, c.lat, c.lng) : null;
+                    const visitLabel = relativeDate(c.lastVisitedAt);
+                    const isRecording = recordingCustomerId === c.id;
+                    const isJustRecorded = recentlyRecordedCustomerId === c.id;
                     return (
-                      <li key={c.id} className="flex items-center border-b border-gray-100 last:border-0">
+                      <li
+                        key={c.id}
+                        className={`flex items-center border-b border-gray-100 transition-colors duration-300 last:border-0 ${
+                          isRecording || isJustRecorded ? "bg-green-50" : ""
+                        }`}
+                      >
                         <button
                           type="button"
                           className="flex min-h-[48px] min-w-0 flex-1 items-center gap-3 px-5 py-3 text-left [touch-action:manipulation] active:bg-blue-50"
@@ -573,7 +606,20 @@ export function MapPage() {
                             nav(`/customer/${c.id}`);
                           }}
                         >
-                          <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-gray-800">{c.name}</span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[15px] font-medium text-gray-800">{c.name}</span>
+                            <span
+                              className={`mt-0.5 block truncate text-xs font-medium ${
+                                isRecording || isJustRecorded
+                                  ? "text-green-700"
+                                  : c.lastVisitedAt
+                                    ? "text-gray-500"
+                                    : "text-gray-400"
+                              }`}
+                            >
+                              {isRecording ? "記録中..." : isJustRecorded ? "訪問済み・今日" : visitLabel}
+                            </span>
+                          </span>
                           {dist != null && (
                             <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">{formatDistance(dist)}</span>
                           )}
@@ -583,16 +629,37 @@ export function MapPage() {
                         </button>
                         <button
                           type="button"
-                          className="mr-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700 [touch-action:manipulation] active:bg-green-200"
-                          title="訪問を記録"
+                          className={`mr-3 flex h-9 min-w-9 shrink-0 items-center justify-center rounded-full px-2 text-xs font-bold transition-all duration-200 [touch-action:manipulation] ${
+                            isRecording
+                              ? "bg-green-600 text-white shadow-sm ring-2 ring-green-200"
+                              : isJustRecorded
+                              ? "bg-green-600 text-white shadow-sm ring-2 ring-green-200"
+                              : "bg-green-100 text-green-700 active:bg-green-200"
+                          } ${isRecording ? "cursor-wait" : ""}`}
+                          title={isRecording ? "記録中" : isJustRecorded ? "訪問済み" : "訪問を記録"}
+                          aria-label={`${c.name}の訪問を記録`}
+                          disabled={isRecording}
                           onClick={(e) => {
                             e.stopPropagation();
                             void quickRecord(c.id);
                           }}
                         >
-                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
+                          {isRecording ? (
+                            <>
+                              <svg className="h-4 w-4 shrink-0 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-30" cx="12" cy="12" r="9" stroke="currentColor" strokeWidth={3} />
+                                <path className="opacity-90" fill="currentColor" d="M21 12a9 9 0 0 0-9-9v3a6 6 0 0 1 6 6h3z" />
+                              </svg>
+                              <span className="ml-1">中</span>
+                            </>
+                          ) : (
+                            <>
+                              <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                              {isJustRecorded && <span className="ml-1">済</span>}
+                            </>
+                          )}
                         </button>
                       </li>
                     );
