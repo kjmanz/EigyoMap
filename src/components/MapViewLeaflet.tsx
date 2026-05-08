@@ -179,15 +179,12 @@ export const MapViewLeaflet = forwardRef<MapViewHandle, Props>(function MapViewL
     let userMarker: L.Marker | null = null;
     let accuracyCircle: L.Circle | null = null;
     let centeredFromGps = false;
+    let centeredFromFastPosition = false;
+    let fastCenteredLatLng: L.LatLng | null = null;
 
-    const onLocationFound = (e: L.LocationEvent) => {
-      const { latlng, accuracy } = e;
-      if (!skipGpsFocusRef.current && !centeredFromGps) {
-        map.setView(latlng, 18);
-        writeCachedMapCenter(latlng.lat, latlng.lng, 18);
-        centeredFromGps = true;
-      }
+    const updateUserLocation = (latlng: L.LatLng, accuracy: number) => {
       onLocationChangeRef.current?.(latlng.lat, latlng.lng);
+      const radius = Math.max(accuracy, 8);
       if (!userMarker) {
         userMarker = L.marker(latlng, {
           icon: userLocationIcon,
@@ -195,7 +192,7 @@ export const MapViewLeaflet = forwardRef<MapViewHandle, Props>(function MapViewL
           interactive: false,
         }).addTo(userLayer);
         accuracyCircle = L.circle(latlng, {
-          radius: Math.max(accuracy, 8),
+          radius,
           color: "#0ea5e9",
           weight: 1,
           fillColor: "#38bdf8",
@@ -205,8 +202,49 @@ export const MapViewLeaflet = forwardRef<MapViewHandle, Props>(function MapViewL
       } else {
         userMarker.setLatLng(latlng);
         accuracyCircle!.setLatLng(latlng);
-        accuracyCircle!.setRadius(Math.max(accuracy, 8));
+        accuracyCircle!.setRadius(radius);
       }
+    };
+
+    const focusLocation = (latlng: L.LatLng, accuracy: number) => {
+      const zoom = accuracy > 120 ? 17 : 18;
+      map.setView(latlng, zoom);
+      writeCachedMapCenter(latlng.lat, latlng.lng, zoom);
+    };
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const latlng = L.latLng(pos.coords.latitude, pos.coords.longitude);
+          updateUserLocation(latlng, pos.coords.accuracy);
+          if (!skipGpsFocusRef.current && !centeredFromGps) {
+            focusLocation(latlng, pos.coords.accuracy);
+            centeredFromFastPosition = true;
+            fastCenteredLatLng = latlng;
+          }
+        },
+        () => {
+          /* watch の高精度取得に任せる */
+        },
+        { enableHighAccuracy: false, timeout: 2500, maximumAge: 5 * 60 * 1000 }
+      );
+    }
+
+    const onLocationFound = (e: L.LocationEvent) => {
+      const { latlng, accuracy } = e;
+      if (
+        !skipGpsFocusRef.current &&
+        !centeredFromGps &&
+        (
+          !centeredFromFastPosition ||
+          accuracy <= 80 ||
+          (fastCenteredLatLng ? map.distance(fastCenteredLatLng, latlng) > 150 : false)
+        )
+      ) {
+        focusLocation(latlng, accuracy);
+        centeredFromGps = true;
+      }
+      updateUserLocation(latlng, accuracy);
     };
 
     const onLocationError = () => {
