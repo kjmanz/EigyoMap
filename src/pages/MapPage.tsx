@@ -48,6 +48,13 @@ function normalizeCustomerSearch(value: string): string {
   return value.trim().normalize("NFKC").toLowerCase();
 }
 
+type QuickRecordKind = "visit" | "away";
+
+type QuickRecordAction = {
+  customerId: string;
+  kind: QuickRecordKind;
+};
+
 export function MapPage() {
   const { user, configured } = useAuth();
   const nav = useNavigate();
@@ -70,8 +77,8 @@ export function MapPage() {
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [quickMsg, setQuickMsg] = useState<string | null>(null);
   const quickMsgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [recordingCustomerId, setRecordingCustomerId] = useState<string | null>(null);
-  const [recentlyRecordedCustomerId, setRecentlyRecordedCustomerId] = useState<string | null>(null);
+  const [recordingAction, setRecordingAction] = useState<QuickRecordAction | null>(null);
+  const [recentlyRecordedAction, setRecentlyRecordedAction] = useState<QuickRecordAction | null>(null);
   const recentRecordTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
   const [userLat, setUserLat] = useState<number | null>(null);
@@ -329,35 +336,36 @@ export function MapPage() {
     await load();
   }
 
-  async function quickRecord(customerId: string) {
-    if (!user || recordingCustomerId === customerId) return;
-    setRecordingCustomerId(customerId);
+  async function quickRecord(customerId: string, kind: QuickRecordKind = "visit") {
+    if (!user || recordingAction?.customerId === customerId) return;
+    setRecordingAction({ customerId, kind });
     const visitedAt = new Date().toISOString();
-    const payload: OfflineContactPayload = { customerId, memo: "", visitedAt, photoBlobs: [] };
+    const memo = kind === "away" ? "留守" : "";
+    const payload: OfflineContactPayload = { customerId, memo, visitedAt, photoBlobs: [] };
     try {
       if (!isOnline()) {
         await enqueueOffline({ id: crypto.randomUUID(), kind: "contact_log", payload });
-        markQuickRecorded(customerId, visitedAt);
-        showQuickMsg("訪問を記録しました（同期待ち）");
+        markQuickRecorded(customerId, visitedAt, kind);
+        showQuickMsg(kind === "away" ? "留守を記録しました（同期待ち）" : "訪問を記録しました（同期待ち）");
         return;
       }
       const { error } = await supabase.from("contact_logs").insert({
-        customer_id: customerId, user_id: user.id, memo: "", visited_at: visitedAt, pinned: false,
+        customer_id: customerId, user_id: user.id, memo, visited_at: visitedAt, pinned: false,
       });
       if (error) { showQuickMsg(`エラー: ${error.message}`); return; }
-      markQuickRecorded(customerId, visitedAt);
-      showQuickMsg("訪問を記録しました");
+      markQuickRecorded(customerId, visitedAt, kind);
+      showQuickMsg(kind === "away" ? "留守を記録しました" : "訪問を記録しました");
     } finally {
-      setRecordingCustomerId((current) => (current === customerId ? null : current));
+      setRecordingAction((current) => (current?.customerId === customerId ? null : current));
     }
   }
 
-  function markQuickRecorded(customerId: string, visitedAt: string) {
+  function markQuickRecorded(customerId: string, visitedAt: string, kind: QuickRecordKind) {
     setCustomers((prev) => prev.map((c) => (c.id === customerId ? { ...c, lastVisitedAt: visitedAt } : c)));
-    setRecentlyRecordedCustomerId(customerId);
+    setRecentlyRecordedAction({ customerId, kind });
     if (recentRecordTimer.current) clearTimeout(recentRecordTimer.current);
     recentRecordTimer.current = setTimeout(() => {
-      setRecentlyRecordedCustomerId((current) => (current === customerId ? null : current));
+      setRecentlyRecordedAction((current) => (current?.customerId === customerId ? null : current));
     }, 3500);
   }
 
@@ -533,6 +541,18 @@ export function MapPage() {
                 </button>
                 <button
                   type="button"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-amber-100 py-2.5 text-sm font-semibold text-amber-800 active:bg-amber-200"
+                  onClick={() => void quickRecord(selectedCustomer.id, "away")}
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 10.5 12 3l9 7.5" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5.5 9.5V20h13V9.5" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 14h6" />
+                  </svg>
+                  留守
+                </button>
+                <button
+                  type="button"
                   className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-accent py-2.5 text-sm font-semibold text-white active:opacity-90"
                   onClick={() => nav(`/customer/${selectedCustomer.id}`)}
                 >
@@ -587,13 +607,23 @@ export function MapPage() {
                   {visibleCustomers.map((c) => {
                     const dist = userLat != null && userLng != null
                       ? haversineMeters(userLat, userLng, c.lat, c.lng) : null;
-                    const isRecording = recordingCustomerId === c.id;
-                    const isJustRecorded = recentlyRecordedCustomerId === c.id;
+                    const isVisitRecording = recordingAction?.customerId === c.id && recordingAction.kind === "visit";
+                    const isAwayRecording = recordingAction?.customerId === c.id && recordingAction.kind === "away";
+                    const isRecording = recordingAction?.customerId === c.id;
+                    const isVisitJustRecorded =
+                      recentlyRecordedAction?.customerId === c.id && recentlyRecordedAction.kind === "visit";
+                    const isAwayJustRecorded =
+                      recentlyRecordedAction?.customerId === c.id && recentlyRecordedAction.kind === "away";
+                    const isJustRecorded = recentlyRecordedAction?.customerId === c.id;
                     return (
                       <li
                         key={c.id}
                         className={`flex items-center border-b border-gray-100 transition-colors duration-300 last:border-0 ${
-                          isRecording || isJustRecorded ? "bg-green-50" : ""
+                          isAwayRecording || isAwayJustRecorded
+                            ? "bg-amber-50"
+                            : isRecording || isJustRecorded
+                            ? "bg-green-50"
+                            : ""
                         }`}
                       >
                         <button
@@ -613,37 +643,72 @@ export function MapPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                           </svg>
                         </button>
-                        <button
-                          type="button"
-                          className={`relative mr-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200 [touch-action:manipulation] ${
-                            isRecording
-                              ? "scale-105 bg-green-600 text-white shadow-sm ring-4 ring-green-200"
-                              : isJustRecorded
-                              ? "scale-110 bg-green-600 text-white shadow-md ring-4 ring-green-200"
-                              : "bg-green-100 text-green-700 active:bg-green-200"
-                          } ${isRecording ? "cursor-wait" : ""}`}
-                          title={isRecording ? "記録中" : isJustRecorded ? "訪問済み" : "訪問を記録"}
-                          aria-label={`${c.name}の訪問を記録`}
-                          disabled={isRecording}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void quickRecord(c.id);
-                          }}
-                        >
-                          {(isRecording || isJustRecorded) && (
-                            <span className="absolute inset-0 rounded-full bg-green-400 opacity-30 animate-ping" />
-                          )}
-                          {isRecording ? (
-                            <svg className="relative h-4 w-4 shrink-0 animate-spin" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-30" cx="12" cy="12" r="9" stroke="currentColor" strokeWidth={3} />
-                              <path className="opacity-90" fill="currentColor" d="M21 12a9 9 0 0 0-9-9v3a6 6 0 0 1 6 6h3z" />
-                            </svg>
-                          ) : (
-                            <svg className="relative h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </button>
+                        <div className="mr-3 flex shrink-0 items-center gap-2">
+                          <button
+                            type="button"
+                            className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200 [touch-action:manipulation] ${
+                              isAwayRecording
+                                ? "scale-105 bg-amber-600 text-white shadow-sm ring-4 ring-amber-200"
+                                : isAwayJustRecorded
+                                ? "scale-110 bg-amber-600 text-white shadow-md ring-4 ring-amber-200"
+                                : "bg-amber-100 text-amber-700 active:bg-amber-200"
+                            } ${isAwayRecording ? "cursor-wait" : ""}`}
+                            title={isAwayRecording ? "記録中" : isAwayJustRecorded ? "留守を記録済み" : "留守を記録"}
+                            aria-label={`${c.name}の留守を記録`}
+                            disabled={isRecording}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void quickRecord(c.id, "away");
+                            }}
+                          >
+                            {(isAwayRecording || isAwayJustRecorded) && (
+                              <span className="absolute inset-0 rounded-full bg-amber-400 opacity-30 animate-ping" />
+                            )}
+                            {isAwayRecording ? (
+                              <svg className="relative h-4 w-4 shrink-0 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-30" cx="12" cy="12" r="9" stroke="currentColor" strokeWidth={3} />
+                                <path className="opacity-90" fill="currentColor" d="M21 12a9 9 0 0 0-9-9v3a6 6 0 0 1 6 6h3z" />
+                              </svg>
+                            ) : (
+                              <svg className="relative h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.3}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10.5 12 3l9 7.5" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5.5 9.5V20h13V9.5" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 14h6" />
+                              </svg>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200 [touch-action:manipulation] ${
+                              isVisitRecording
+                                ? "scale-105 bg-green-600 text-white shadow-sm ring-4 ring-green-200"
+                                : isVisitJustRecorded
+                                ? "scale-110 bg-green-600 text-white shadow-md ring-4 ring-green-200"
+                                : "bg-green-100 text-green-700 active:bg-green-200"
+                            } ${isVisitRecording ? "cursor-wait" : ""}`}
+                            title={isVisitRecording ? "記録中" : isVisitJustRecorded ? "訪問済み" : "訪問を記録"}
+                            aria-label={`${c.name}の訪問を記録`}
+                            disabled={isRecording}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void quickRecord(c.id);
+                            }}
+                          >
+                            {(isVisitRecording || isVisitJustRecorded) && (
+                              <span className="absolute inset-0 rounded-full bg-green-400 opacity-30 animate-ping" />
+                            )}
+                            {isVisitRecording ? (
+                              <svg className="relative h-4 w-4 shrink-0 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-30" cx="12" cy="12" r="9" stroke="currentColor" strokeWidth={3} />
+                                <path className="opacity-90" fill="currentColor" d="M21 12a9 9 0 0 0-9-9v3a6 6 0 0 1 6 6h3z" />
+                              </svg>
+                            ) : (
+                              <svg className="relative h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
                       </li>
                     );
                   })}
